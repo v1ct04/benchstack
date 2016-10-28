@@ -20,6 +20,11 @@ class ConcurrentWorkersPool {
         mExecutorService = new VariantScheduledExecutorService(Executors.newCachedThreadPool());
     }
 
+    public void shutdown() {
+        setWorkerCount(0);
+        mExecutorService.shutdown();
+    }
+
     public int getWorkerCount() {
         return mWorkers.size();
     }
