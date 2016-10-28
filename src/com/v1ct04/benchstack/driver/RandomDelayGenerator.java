@@ -1,6 +1,7 @@
 package com.v1ct04.benchstack.driver;
 
 import java.util.Random;
+import java.util.function.DoubleSupplier;
 import java.util.function.LongSupplier;
 
 /**
@@ -11,7 +12,7 @@ import java.util.function.LongSupplier;
  * random value, square it and multiply by the desired mean and we
  * have the distribution with the desired mean.
  */
-class RandomDelayGenerator implements LongSupplier {
+class RandomDelayGenerator implements DoubleSupplier, LongSupplier {
 
     private final Random mRandom = new Random();
     private final double mMean;
@@ -22,8 +23,13 @@ class RandomDelayGenerator implements LongSupplier {
 
     @Override
     public long getAsLong() {
+        return (long) getAsDouble();
+    }
+
+    @Override
+    public double getAsDouble() {
         double stdNormal = mRandom.nextGaussian();
         double chiSq = stdNormal * stdNormal;
-        return (long) (chiSq * mMean);
+        return chiSq * mMean;
     }
 }
