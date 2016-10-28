@@ -43,7 +43,15 @@ class ConcurrentWorkersPool {
                 .forEach(w -> w.cancel(false));
     }
 
+    /**
+     * Creates a new worker in the underlying executor service with a
+     * variable execution rate, so that we don't have bursts of requests
+     * to the SUT, distributing them over the testing period.
+     */
     private Future<?> newWorker(int id) {
-        return mExecutorService.scheduleAtFixedRate(() -> mWorkerFunction.apply(id), 0, 1, TimeUnit.SECONDS);
+        return mExecutorService.scheduleAtVariableRate(
+                () -> mWorkerFunction.apply(id),
+                0, new RandomDelayGenerator(1000),
+                TimeUnit.MILLISECONDS);
     }
 }
