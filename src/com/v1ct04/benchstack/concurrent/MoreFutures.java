@@ -1,4 +1,4 @@
-package com.v1ct04.benchstack.futures;
+package com.v1ct04.benchstack.concurrent;
 
 import com.google.common.util.concurrent.ForwardingListenableFuture;
 import com.google.common.util.concurrent.Futures;

@@ -1,6 +1,6 @@
 package com.v1ct04.benchstack.driver;
 
-import com.v1ct04.benchstack.futures.VariantScheduledExecutorService;
+import com.v1ct04.benchstack.concurrent.VariantScheduledExecutorService;
 
 import java.util.Stack;
 import java.util.concurrent.Executors;
