@@ -6,18 +6,20 @@ import java.util.Stack;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.IntFunction;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 class ConcurrentWorkersPool {
 
-    private final IntFunction mWorkerFunction;
+    private final Runnable mWorkerFunction;
     private final VariantScheduledExecutorService mExecutorService;
+
+    private final AtomicInteger mWorkerCount = new AtomicInteger(0);
     private final Stack<Future<?>> mWorkers = new Stack<>();
 
-    public ConcurrentWorkersPool(IntFunction workerFunction) {
-        mWorkerFunction = workerFunction;
+    public ConcurrentWorkersPool(Runnable workerFunction) {
         mExecutorService = new VariantScheduledExecutorService(Executors.newCachedThreadPool());
+        mWorkerFunction = workerFunction;
     }
 
     public void shutdown() {
@@ -26,23 +28,35 @@ class ConcurrentWorkersPool {
     }
 
     public int getWorkerCount() {
-        return mWorkers.size();
+        return mWorkerCount.get();
     }
 
-    public synchronized void setWorkerCount(int count) {
-        int toAdd = count - mWorkers.size();
-        if (toAdd > 0) addWorkers(toAdd);
-        else removeWorkers(-toAdd);
+    public void setWorkerCount(int count) {
+        int oldCount = mWorkerCount.getAndSet(count);
+        int toAdd = (count - oldCount);
+        if (toAdd > 0) addWorkersImpl(toAdd);
+        else removeWorkersImpl(-toAdd);
     }
 
-    public synchronized void addWorkers(int n) {
-        Stream.generate(mWorkers::size)
-                .map(this::newWorker)
+    public int addWorkers(int n) {
+        int size = mWorkerCount.addAndGet(n);
+        addWorkersImpl(n);
+        return size;
+    }
+
+    public int removeWorkers(int n) {
+        int size = mWorkerCount.addAndGet(-n);
+        removeWorkersImpl(n);
+        return size;
+    }
+
+    private void addWorkersImpl(int n) {
+        Stream.generate(this::newWorker)
                 .limit(n)
-                .forEach(mWorkers::add);
+                .forEach(mWorkers::push);
     }
 
-    public synchronized void removeWorkers(int n) {
+    private void removeWorkersImpl(int n) {
         Stream.generate(mWorkers::pop)
                 .limit(n)
                 .forEach(w -> w.cancel(false));
@@ -53,9 +67,9 @@ class ConcurrentWorkersPool {
      * variable execution rate, so that we don't have bursts of requests
      * to the SUT, distributing them over the testing period.
      */
-    private Future<?> newWorker(int id) {
+    private Future<?> newWorker() {
         return mExecutorService.scheduleAtVariableRate(
-                () -> mWorkerFunction.apply(id),
+                mWorkerFunction,
                 0, new RandomDelayGenerator(1000),
                 TimeUnit.MILLISECONDS);
     }
