@@ -90,10 +90,9 @@ public class Benchmark {
 
     private void execExponentialLoadStep() throws InterruptedException {
         setWorkerCount(10);
-        LOGGER.finer("Starting exponential step with " + mWorkersPool.getWorkerCount() + " workers.");
+        LOGGER.finer("Starting exponential step.");
         while (isComplying(15, TimeUnit.SECONDS)) {
             setWorkerCount(5 * mWorkersPool.getWorkerCount());
-            LOGGER.finer("Doubling worker count to: " + mWorkersPool.getWorkerCount());
         }
     }
 
@@ -104,7 +103,6 @@ public class Benchmark {
         LOGGER.finer("Starting binary search step.");
         while (max - min > 5) {
             setWorkerCount((min + max) / 2);
-            LOGGER.finer("Binary search testing worker count: " + mWorkersPool.getWorkerCount());
 
             if (isComplying(30, TimeUnit.SECONDS)) {
                 LOGGER.finer("Adjusting minimum search bound.");
@@ -119,12 +117,11 @@ public class Benchmark {
 
     private void execFineTuneStep() throws InterruptedException {
         int workingCount;
-        for (int step = 5; step > 1; step /= 2) {
+        for (int step = 10; step > 0; step /= 2) {
             LOGGER.finer("Fine tuning with step: " + step);
             do {
                 workingCount = mWorkersPool.getWorkerCount();
                 setWorkerCount(workingCount + step);
-                LOGGER.finer("Fine tune testing with workers: " + mWorkersPool.getWorkerCount());
             } while (isComplying(30, TimeUnit.SECONDS));
             setWorkerCount(workingCount);
         }
@@ -139,6 +136,7 @@ public class Benchmark {
     }
 
     private void setWorkerCount(int count) {
+        LOGGER.finer("Setting worker count to: " + count);
         mWorkersPool.setWorkerCount(count);
         mPercentileCalculator.reset();
     }
