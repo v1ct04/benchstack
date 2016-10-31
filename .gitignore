@@ -44,6 +44,7 @@ out/
 !.idea/libraries
 *.eml
 keys/
+!lib/*.jar
 
 # External tool builders
 .externalToolBuilders/
