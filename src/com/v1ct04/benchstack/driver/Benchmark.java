@@ -17,8 +17,21 @@ public class Benchmark {
 
     private static final Logger LOGGER = Logger.getLogger(Benchmark.class.getName());
 
-    private static final long DELAY_LIMIT_MILLIS = TimeUnit.SECONDS.toMillis(1);
+    private static final long DELAY_LIMIT_MILLIS = 1000;
     private static final double PERCENTILE_THRESHOLD = 0.95;
+    private static final int COMPLIANCE_TEST_SAMPLES = 3;
+
+    private static final int EXP_STEP_WAIT_TIME_SEC = 15;
+    private static final int EXP_STEP_MULTIPLIER = 5;
+    private static final int EXP_STEP_INITIAL_WORKERS = 10;
+
+    private static final int BIN_SEARCH_WAIT_TIME_SEC = 30;
+    private static final int BIN_SEARCH_THRESHOLD = 5;
+
+    private static final int FINE_TUNE_INITIAL_STEP = 10;
+    private static final int FINE_TUNE_WAIT_TIME_SEC = 30;
+
+    private static final int STABLE_STATS_WAIT_TIME_MIN = 60;
 
     private Thread mBenchmarkThread;
     private ConcurrentWorkersPool mWorkersPool;
@@ -72,7 +85,7 @@ public class Benchmark {
             LOGGER.fine("Finished binary search step. Workers: " + mWorkersPool.getWorkerCount());
             execFineTuneStep();
             LOGGER.fine("Finished fine tuning. Workers: " + mWorkersPool.getWorkerCount());
-            execCalculateStatsStep();
+            mResult.set(execCalculateStatsStep());
             LOGGER.info("Finished Benchmark.");
         } catch (InterruptedException e) {
             LOGGER.warning("Benchmark interrupted.");
@@ -89,22 +102,22 @@ public class Benchmark {
     }
 
     private void execExponentialLoadStep() throws InterruptedException {
-        setWorkerCount(10);
+        setWorkerCount(EXP_STEP_INITIAL_WORKERS);
         LOGGER.finer("Starting exponential step.");
-        while (isComplying(15, TimeUnit.SECONDS)) {
-            setWorkerCount(5 * mWorkersPool.getWorkerCount());
+        while (isComplying(EXP_STEP_WAIT_TIME_SEC, TimeUnit.SECONDS)) {
+            setWorkerCount(EXP_STEP_MULTIPLIER * mWorkersPool.getWorkerCount());
         }
     }
 
     private void execBinarySearchStep() throws InterruptedException {
         int max = mWorkersPool.getWorkerCount();
-        int min = (max == 10 ? 1 : max / 5);
+        int min = (max == EXP_STEP_INITIAL_WORKERS ? 1 : max / EXP_STEP_MULTIPLIER);
 
         LOGGER.finer("Starting binary search step.");
-        while (max - min > 5) {
+        while (max - min > BIN_SEARCH_THRESHOLD) {
             setWorkerCount((min + max) / 2);
 
-            if (isComplying(30, TimeUnit.SECONDS)) {
+            if (isComplying(BIN_SEARCH_WAIT_TIME_SEC, TimeUnit.SECONDS)) {
                 LOGGER.finer("Adjusting minimum search bound.");
                 min = mWorkersPool.getWorkerCount();
             } else {
@@ -117,22 +130,22 @@ public class Benchmark {
 
     private void execFineTuneStep() throws InterruptedException {
         int workingCount;
-        for (int step = 10; step > 0; step /= 2) {
+        for (int step = FINE_TUNE_INITIAL_STEP; step > 0; step /= 2) {
             LOGGER.finer("Fine tuning with step: " + step);
             do {
                 workingCount = mWorkersPool.getWorkerCount();
                 setWorkerCount(workingCount + step);
-            } while (isComplying(30, TimeUnit.SECONDS));
+            } while (isComplying(FINE_TUNE_WAIT_TIME_SEC, TimeUnit.SECONDS));
             setWorkerCount(workingCount);
         }
     }
 
-    private void execCalculateStatsStep() throws InterruptedException {
-        LOGGER.finer("Calculating hourly statistics for worker count: " + mWorkersPool.getWorkerCount());
+    private Statistics execCalculateStatsStep() throws InterruptedException {
+        LOGGER.finer("Calculating stable statistics for worker count: " + mWorkersPool.getWorkerCount());
 
         mStatsCalculator = Statistics.calculator();
-        TimeUnit.HOURS.sleep(1);
-        mResult.set(mStatsCalculator.calculate());
+        TimeUnit.MINUTES.sleep(STABLE_STATS_WAIT_TIME_MIN);
+        return mStatsCalculator.calculate();
     }
 
     private void setWorkerCount(int count) {
@@ -152,14 +165,14 @@ public class Benchmark {
             double percentile = mPercentileCalculator.getCurrentPercentile();
             LOGGER.finest("Current percentile: " + percentile);
             percentiles.add(percentile);
-            if (percentiles.size() < 3) continue;
+            if (percentiles.size() < COMPLIANCE_TEST_SAMPLES) continue;
 
             boolean complies = percentiles.stream().allMatch(p -> p > PERCENTILE_THRESHOLD);
             boolean increasing = isIncreasing(percentiles.stream());
             boolean decreasing = isIncreasing(percentiles.stream().map(x -> -x));
             LOGGER.finest(() -> String.format(
-                    "Collected 3 percentiles. {complies=%b, increasing=%b, decreasing=%b}",
-                    complies, increasing, decreasing));
+                    "Collected %d percentiles. {complies=%b, increasing=%b, decreasing=%b}",
+                    percentiles.size(), complies, increasing, decreasing));
 
             if (complies && increasing) {
                 return true;
@@ -169,13 +182,8 @@ public class Benchmark {
                 double last = percentiles.get(percentiles.size() - 1);
                 percentiles.clear();
                 percentiles.add(last);
-                waitTime *= 3;
+                waitTime *= COMPLIANCE_TEST_SAMPLES;
             } else {
-                // If here, we've waited 9 times baseWaitTimeSec, wait one more
-                // time so we round to 10 times the base wait time and return
-                // the final instantaneous percentile result.
-                LOGGER.finest("Compliance check, final wait of: " + baseWaitTime + " " + unit);
-                unit.sleep(baseWaitTime);
                 break;
             }
         } while (true);
