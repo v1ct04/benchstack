@@ -156,7 +156,7 @@ public class Benchmark {
             percentiles.add(percentile);
             if (percentiles.size() < 3) continue;
 
-            boolean complies = percentiles.get(0) > PERCENTILE_THRESHOLD;
+            boolean complies = percentiles.stream().allMatch(p -> p > PERCENTILE_THRESHOLD);
             boolean increasing = isIncreasing(percentiles.stream());
             boolean decreasing = isIncreasing(percentiles.stream().map(x -> -x));
             LOGGER.finest(() -> String.format(
@@ -197,6 +197,7 @@ public class Benchmark {
             if (curr.compareTo(last) < 0) {
                 return false;
             }
+            last = curr;
         }
         return true;
     }
