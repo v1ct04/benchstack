@@ -10,6 +10,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class Statistics {
+
+    public static Calculator calculator() {
+        return new Calculator();
+    }
+
     public final DoubleSummaryStatistics summary;
     public final double variance;
     public final double stdDev;
@@ -17,7 +22,7 @@ public class Statistics {
 
     private final List<Double> mValues;
 
-    public Statistics(List<Double> values, long elapsedTimeSec) {
+    private Statistics(List<Double> values, long elapsedTimeSec) {
         mValues = values;
         Collections.sort(mValues);
 
@@ -43,10 +48,6 @@ public class Statistics {
         int idx = Collections.binarySearch(mValues, value);
         while (idx < mValues.size() && mValues.get(idx) == value) idx++;
         return idx / (double) mValues.size();
-    }
-
-    public static Calculator calculator() {
-        return new Calculator();
     }
 
     public static class Calculator {
