@@ -34,7 +34,7 @@ public class Statistics {
                 .average()
                 .orElse(0);
         stdDev = Math.sqrt(variance);
-        samplesPerSec = (summary.getCount() / elapsedTimeSec);
+        samplesPerSec = (summary.getCount() / (double) elapsedTimeSec);
     }
 
     public double getPercentileValue(double percentile) {
@@ -48,6 +48,16 @@ public class Statistics {
         int idx = Collections.binarySearch(mValues, value);
         while (idx < mValues.size() && mValues.get(idx) == value) idx++;
         return idx / (double) mValues.size();
+    }
+
+    @Override
+    public String toString() {
+        return "Statistics{" +
+                "summary=" + summary +
+                ", variance=" + variance +
+                ", stdDev=" + stdDev +
+                ", samplesPerSec=" + samplesPerSec +
+                '}';
     }
 
     public static class Calculator {
