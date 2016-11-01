@@ -1,0 +1,33 @@
+option java_package = "com.v1ct04.benchstack.driver";
+option java_outer_classname = "BenchmarkConfigWrapper";
+
+message BenchmarkConfig {
+    optional int64 delayLimitMillis = 1 [default = 1000];
+    optional double percentileThreshold = 2 [default = 0.95];
+    optional int32 complianceTestSamples = 3 [default = 3];
+
+    message ExponentialStepConfig {
+        optional int64 baseWaitTimeSec = 1 [default = 15];
+        optional int32 initialWorkers = 2 [default = 10];
+        optional int32 multiplier = 3 [default = 5];
+    }
+
+    message BinarySearchStepConfig {
+        optional int64 baseWaitTimeSec = 1 [default = 30];
+        optional int32 threshold = 2 [default = 5];
+    }
+
+    message FineTuneStepConfig {
+        optional int64 baseWaitTimeSec = 1 [default = 30];
+        optional int32 initialStep = 2 [default = 10];
+    }
+
+    message StableStatsStepConfig {
+        optional int64 waitTimeMin = 1 [default = 60];
+    }
+
+    optional ExponentialStepConfig exponentialStepConfig = 4;
+    optional BinarySearchStepConfig binarySearchConfig = 5;
+    optional FineTuneStepConfig fineTuneConfig = 6;
+    optional StableStatsStepConfig stableStatsConfig = 7;
+}
