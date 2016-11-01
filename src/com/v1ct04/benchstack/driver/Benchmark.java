@@ -8,6 +8,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
+import com.v1ct04.benchstack.concurrent.TimeCondition;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig.BinarySearchStepConfig;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig.ExponentialStepConfig;
@@ -152,8 +153,35 @@ public class Benchmark {
         LOGGER.finer("Calculating stable statistics for worker count: " + mWorkersPool.getWorkerCount());
 
         mStatsCalculator = Statistics.calculator();
-        TimeUnit.MINUTES.sleep(config.getWaitTimeMin());
+        waitReportingStatus(config.getWaitTimeMin(), TimeUnit.MINUTES);
         return mStatsCalculator.calculate();
+    }
+
+    private void waitReportingStatus(long timeout, TimeUnit unit) throws InterruptedException {
+        TimeCondition endCondition = TimeCondition.untilAfter(timeout, unit);
+        do {
+            System.out.format("Waiting: %.1f OPS\n" +
+                              "         %.3f percentile\n" +
+                              "         %d workers\n" +
+                              "         %d threads\n",
+                    mWorkersPool.getCurrentOperationsPerSec(),
+                    mPercentileCalculator.getCurrentPercentile(),
+                    mWorkersPool.getWorkerCount(),
+                    mWorkersPool.getThreadCount());
+            if (endCondition.await(1, TimeUnit.SECONDS)) break;
+            moveBackLines(4);
+        } while (true);
+    }
+
+    /**
+     * Uses ANSI codes to move back the cursor n lines and clear the console from that point.
+     */
+    private static void moveBackLines(int nLines) {
+        String ESC = "\033[";
+        System.out.print(ESC + nLines + "F" + // move back n lines
+                         ESC + "1G" +         // move caret to start of line
+                         ESC + "0J");         // clear screen from cursor forward
+        System.out.flush();
     }
 
     private void setWorkerCount(int count) {

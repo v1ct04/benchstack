@@ -6,8 +6,9 @@ import com.v1ct04.benchstack.concurrent.TimeCondition;
 import com.v1ct04.benchstack.concurrent.VariantScheduledExecutorService;
 
 import java.util.Stack;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongSupplier;
@@ -16,6 +17,7 @@ import java.util.stream.Stream;
 class ConcurrentWorkersPool {
 
     private final Runnable mWorkerFunction;
+    private final ThreadPoolExecutor mThreadPoolExecutor;
     private final VariantScheduledExecutorService mExecutorService;
 
     private final AtomicInteger mWorkerCount = new AtomicInteger(0);
@@ -25,7 +27,8 @@ class ConcurrentWorkersPool {
     private final AtomicInteger mOperationCount = new AtomicInteger(0);
 
     public ConcurrentWorkersPool(Runnable workerFunction) {
-        mExecutorService = new VariantScheduledExecutorService(Executors.newCachedThreadPool());
+        mThreadPoolExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 5, TimeUnit.SECONDS, new SynchronousQueue<>());
+        mExecutorService = new VariantScheduledExecutorService(mThreadPoolExecutor);
         mWorkerFunction = workerFunction;
     }
 
@@ -33,6 +36,10 @@ class ConcurrentWorkersPool {
         long elapsedMillis = mSinceLastChange.elapsed(TimeUnit.MILLISECONDS);
         if (elapsedMillis == 0) return 0;
         return mOperationCount.get() / (elapsedMillis / 1000.0);
+    }
+
+    public int getThreadCount() {
+        return mThreadPoolExecutor.getPoolSize();
     }
 
     public void shutdown() {
