@@ -116,8 +116,14 @@ public class Benchmark {
         int min = limits.lowerEndpoint(), max = limits.upperEndpoint();
 
         LOGGER.finer("Starting binary search step.");
-        while (max - min > config.getThreshold()) {
-            setWorkerCount((min + max) / 2);
+        int threshold = config.getThreshold();
+        while (max - min > threshold) {
+            double currentOpsPerSec = mWorkersPool.getCurrentOperationsPerSec();
+            if (currentOpsPerSec > min + threshold && currentOpsPerSec < max - threshold) {
+                setWorkerCount((int) currentOpsPerSec);
+            } else {
+                setWorkerCount((min + max) / 2);
+            }
 
             if (isComplying(config)) {
                 LOGGER.finer("Adjusting minimum search bound.");
