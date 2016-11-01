@@ -51,6 +51,7 @@ class ConcurrentWorkersPool {
         if (toAdd > 0) addWorkers(toAdd);
         else removeWorkers(-toAdd);
 
+        mExecutorService.resetPeriodicTasks();
         mOperationCount.set(0);
         mSinceLastChange.reset().start();
     }

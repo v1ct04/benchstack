@@ -12,6 +12,7 @@ public class VariantScheduledExecutorService extends AbstractListeningExecutorSe
     private final ThreadFactory mThreadFactory;
     private final ListeningScheduledExecutorService mScheduledExecutor;
     private final ListeningExecutorService mDelegatedExecutor;
+    private final Signaler mResetSignaler = new Signaler();
 
     // Constructors
 
@@ -106,11 +107,16 @@ public class VariantScheduledExecutorService extends AbstractListeningExecutorSe
     // New Public API
 
     public ListenableScheduledFuture<?> scheduleAtVariableRate(Runnable command, long initialDelay, LongSupplier rateSupplier, TimeUnit unit) {
-        return scheduleWithVariableDelay(command, unit.toNanos(initialDelay), new RateToNanoDelaySupplier(initialDelay, rateSupplier, unit), TimeUnit.NANOSECONDS);
+        LongSupplier delaySupplier = new RateToNanoDelaySupplier(initialDelay, rateSupplier, unit, mResetSignaler.receiver());
+        return scheduleWithVariableDelay(command, unit.toNanos(initialDelay), delaySupplier, TimeUnit.NANOSECONDS);
     }
 
     public ListenableScheduledFuture<?> scheduleWithVariableDelay(Runnable command, long initialDelay, LongSupplier delaySupplier, TimeUnit unit) {
         return new ListenableReschedulingTask(command, initialDelay, delaySupplier, unit);
+    }
+
+    public void resetPeriodicTasks() {
+        mResetSignaler.signal();
     }
 
     // Private Helpers
@@ -176,21 +182,26 @@ public class VariantScheduledExecutorService extends AbstractListeningExecutorSe
 
     private static class RateToNanoDelaySupplier implements LongSupplier {
 
-        private long mNextNanoStartTime;
+        private long mLastNanoStartTime;
 
         private final LongSupplier mRateSupplier;
         private final TimeUnit mUnit;
+        private final Signaler.Receiver mResetReceiver;
 
-        private RateToNanoDelaySupplier(long initialDelay, LongSupplier rateSupplier, TimeUnit unit) {
-            mNextNanoStartTime = System.nanoTime() + unit.toNanos(initialDelay);
+        private RateToNanoDelaySupplier(long initialDelay, LongSupplier rateSupplier, TimeUnit unit, Signaler.Receiver resetReceiver) {
+            mLastNanoStartTime = System.nanoTime() + unit.toNanos(initialDelay);
             mRateSupplier = rateSupplier;
             mUnit = unit;
+            mResetReceiver = resetReceiver;
         }
 
         @Override
         public long getAsLong() {
-            mNextNanoStartTime += mUnit.toNanos(mRateSupplier.getAsLong());
-            return mNextNanoStartTime - System.nanoTime();
+            if (mResetReceiver.signaled()) {
+                mLastNanoStartTime = System.nanoTime();
+            }
+            mLastNanoStartTime += mUnit.toNanos(mRateSupplier.getAsLong());
+            return mLastNanoStartTime - System.nanoTime();
         }
     }
 }
