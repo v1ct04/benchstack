@@ -1,6 +1,5 @@
 package com.v1ct04.benchstack.driver;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
@@ -43,13 +42,13 @@ public class Benchmark {
     }
 
     private void workerFunction() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
+        long nanoStartTime = System.nanoTime();
         mFunction.run();
-        long elapsedTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
 
-        mPercentileCalculator.appendValue(elapsedTime);
+        mPercentileCalculator.appendValue(elapsedMillis);
         if (mStatsCalculator != null) {
-            mStatsCalculator.appendValue(elapsedTime / 1000.0);
+            mStatsCalculator.appendValue(elapsedMillis / 1000.0);
         }
     }
 
