@@ -2,14 +2,14 @@ package com.v1ct04.benchstack;
 
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.TextFormat;
+import com.v1ct04.benchstack.driver.Arbitrator;
 import com.v1ct04.benchstack.driver.Benchmark;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig;
 import com.v1ct04.benchstack.driver.Statistics;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Date;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -33,7 +33,8 @@ public class Main {
         setLogLevel(Level.FINEST);
 
         BenchmarkConfig config = parseConfig("bench.config");
-        Benchmark bench = new Benchmark(config, Main::sortSumRandom);
+        Arbitrator<Runnable> functions = Arbitrator.uniform(Main::streamSortSum, Main::oldSortSum);
+        Benchmark bench = new Benchmark(config, () -> functions.arbitrate().run());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         System.out.println("Starting benchmark at: " + new Date());
@@ -48,10 +49,22 @@ public class Main {
         System.out.format("%dms percentile rank: %.2f\n", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
     }
 
-    private static double sortSumRandom() {
+    private static double streamSortSum() {
         return DoubleStream.generate(Math::random)
                 .limit(10000)
                 .sorted()
                 .sum();
+    }
+
+    private static double oldSortSum() {
+        List<Double> doubles = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            doubles.add(Math.random());
+        }
+        Collections.sort(doubles);
+
+        double sum = 0;
+        for (Double d : doubles) sum += d;
+        return sum;
     }
 }

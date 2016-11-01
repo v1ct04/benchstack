@@ -12,6 +12,14 @@ public class Arbitrator<FunctionType> {
     private final Random mRandom = new Random();
     private int mWeightSum = 0;
 
+    public static <Type> Arbitrator<Type> uniform(Type... funcs) {
+        Arbitrator<Type> arbitrator = new Arbitrator<>();
+        for (Type func : funcs) {
+            arbitrator.addFunction(1, func);
+        }
+        return arbitrator;
+    }
+
     public void addFunction(int weight, FunctionType func) {
         if (weight <= 0) {
             throw new IllegalArgumentException("Weight must be a positive number");
