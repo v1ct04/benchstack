@@ -3,7 +3,7 @@ package com.v1ct04.benchstack.driver;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Range;
 import com.v1ct04.benchstack.concurrent.TimeCondition;
-import com.v1ct04.benchstack.concurrent.VariantScheduledExecutorService;
+import com.v1ct04.benchstack.concurrent.VariantScheduleExecutor;
 
 import java.util.Stack;
 import java.util.concurrent.Future;
@@ -18,7 +18,7 @@ class ConcurrentWorkersPool {
 
     private final Runnable mWorkerFunction;
     private final ThreadPoolExecutor mThreadPoolExecutor;
-    private final VariantScheduledExecutorService mExecutorService;
+    private final VariantScheduleExecutor mExecutorService;
 
     private final AtomicInteger mWorkerCount = new AtomicInteger(0);
     private final Stack<Future<?>> mWorkers = new Stack<>();
@@ -28,7 +28,7 @@ class ConcurrentWorkersPool {
 
     public ConcurrentWorkersPool(Runnable workerFunction) {
         mThreadPoolExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 5, TimeUnit.SECONDS, new SynchronousQueue<>());
-        mExecutorService = new VariantScheduledExecutorService(mThreadPoolExecutor);
+        mExecutorService = new VariantScheduleExecutor(mThreadPoolExecutor);
         mWorkerFunction = workerFunction;
     }
 

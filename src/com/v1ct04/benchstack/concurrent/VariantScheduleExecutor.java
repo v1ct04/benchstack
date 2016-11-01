@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.LongSupplier;
 
-public class VariantScheduledExecutorService extends AbstractListeningExecutorService implements ListeningScheduledExecutorService {
+public class VariantScheduleExecutor extends AbstractListeningExecutorService implements ListeningScheduledExecutorService {
 
     private final ThreadFactory mThreadFactory;
     private final ListeningScheduledExecutorService mScheduledExecutor;
@@ -16,11 +16,11 @@ public class VariantScheduledExecutorService extends AbstractListeningExecutorSe
 
     // Constructors
 
-    public VariantScheduledExecutorService(ExecutorService delegatedExecutor) {
+    public VariantScheduleExecutor(ExecutorService delegatedExecutor) {
         this(delegatedExecutor, Executors.defaultThreadFactory());
     }
 
-    public VariantScheduledExecutorService(ExecutorService delegatedExecutor, ThreadFactory factory) {
+    public VariantScheduleExecutor(ExecutorService delegatedExecutor, ThreadFactory factory) {
         mThreadFactory = factory;
         mScheduledExecutor = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1, factory));
         mDelegatedExecutor = MoreExecutors.listeningDecorator(delegatedExecutor);
