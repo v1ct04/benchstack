@@ -32,16 +32,20 @@ public class Main {
     public static void main(String[] args) throws Exception {
         setLogLevel(Level.FINEST);
 
-        Benchmark bench = new Benchmark(parseConfig("bench.config"), Main::sortSumRandom);
+        BenchmarkConfig config = parseConfig("bench.config");
+        Benchmark bench = new Benchmark(config, Main::sortSumRandom);
+
         Stopwatch stopwatch = Stopwatch.createStarted();
         System.out.println("Starting benchmark at: " + new Date());
         Statistics stats = bench.start().get();
         System.out.println("Benchmark finished at: " + new Date());
-        System.out.println("Elapsed time: " + stopwatch.elapsed(TimeUnit.SECONDS) / 60.0 + " minutes");
+        System.out.format("Elapsed time: %.2f minutes\n", stopwatch.elapsed(TimeUnit.SECONDS) / 60.0);
 
         System.out.println(stats);
-        System.out.println("95th percentile: " + stats.getPercentileValue(0.95));
-        System.out.println("10ms percentile rank: " + stats.getPercentileRank(0.010));
+        double percentile = config.getPercentileThreshold();
+        long delayMillis = config.getDelayLimitMillis();
+        System.out.format("%dth percentile: %.3f\n", (int) (100 * percentile), stats.getPercentileValue(percentile));
+        System.out.format("%dms percentile rank: %.2f\n", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
     }
 
     private static double sortSumRandom() {
