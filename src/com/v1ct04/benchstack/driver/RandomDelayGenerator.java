@@ -5,20 +5,22 @@ import java.util.function.DoubleSupplier;
 import java.util.function.LongSupplier;
 
 /**
- * Uses a chi-squared distribution with 1 degree of freedom for
+ * Uses a chi-squared distribution with a certain degree of freedom for
  * generating randomized delays with a specified mean. A chi-squared
- * distribution is known to have a mean equal to the number of
- * degrees of freedom (so 1), thus we only need to generate a gaussian
- * random value, square it and multiply by the desired mean and we
- * have the distribution with the desired mean.
+ * distribution is known to have a mean equal to the number of degrees
+ * of freedom, thus we only need to sum the square of a couple of gaussian
+ * random values, multiplying it by the desired mean divided by the number
+ * of degrees of freedom, obtaining then the desired distribution.
  */
-class RandomDelayGenerator implements DoubleSupplier, LongSupplier {
+public class RandomDelayGenerator implements DoubleSupplier, LongSupplier {
 
     private final Random mRandom = new Random();
-    private final double mMean;
+    private final double mMultiplier;
+    private final int mDegreesOfFreedom;
 
-    RandomDelayGenerator(double mean) {
-        mMean = mean;
+    public RandomDelayGenerator(double mean, int degreesOfFreedom) {
+        mMultiplier = mean / degreesOfFreedom;
+        mDegreesOfFreedom = degreesOfFreedom;
     }
 
     @Override
@@ -28,8 +30,11 @@ class RandomDelayGenerator implements DoubleSupplier, LongSupplier {
 
     @Override
     public double getAsDouble() {
-        double stdNormal = mRandom.nextGaussian();
-        double chiSq = stdNormal * stdNormal;
-        return chiSq * mMean;
+        double chiSq = 0;
+        for (int i = 0; i < mDegreesOfFreedom; i++) {
+            double gaussian = mRandom.nextGaussian();
+            chiSq += gaussian * gaussian;
+        }
+        return chiSq * mMultiplier;
     }
 }

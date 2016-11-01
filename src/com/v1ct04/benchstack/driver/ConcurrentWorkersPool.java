@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 
 class ConcurrentWorkersPool {
@@ -87,9 +88,10 @@ class ConcurrentWorkersPool {
      * to the SUT, distributing them over the testing period.
      */
     private Future<?> newWorker() {
+        LongSupplier delayGenerator = new RandomDelayGenerator(1000, 4);
         return mExecutorService.scheduleAtVariableRate(
                 this::workerFunction,
-                0, new RandomDelayGenerator(1000),
+                delayGenerator.getAsLong(), delayGenerator,
                 TimeUnit.MILLISECONDS);
     }
 
