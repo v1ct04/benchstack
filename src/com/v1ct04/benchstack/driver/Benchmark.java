@@ -137,14 +137,23 @@ public class Benchmark {
     }
 
     private void execFineTuneStep(FineTuneStepConfig config) throws InterruptedException {
-        for (int step = config.getInitialStep(); step > 0; step /= 2) {
-            LOGGER.finer("Fine tuning with step: " + step);
-            int workingCount;
+        LOGGER.finer("Starting fine tune step.");
+        int step = 2 * config.getInitialStep();
+        while (!isComplying(config)) {
+            LOGGER.finer("Fine tuning down with double step: " + step);
+            setWorkerCount(mWorkersPool.getWorkerCount() - step);
+        }
+
+        while (step > 1) {
+            step /= 2;
+            int complyingCount;
             do {
-                workingCount = mWorkersPool.getWorkerCount();
-                setWorkerCount(workingCount + step);
+                complyingCount = mWorkersPool.getWorkerCount();
+                LOGGER.finer("Fine tuning up with step: " + step);
+                setWorkerCount(complyingCount + step);
             } while (isComplying(config));
-            setWorkerCount(workingCount);
+
+            setWorkerCount(complyingCount);
         }
     }
 
