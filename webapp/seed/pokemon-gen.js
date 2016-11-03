@@ -1,6 +1,7 @@
 const pokemon   = require('pokemon'),
       baseStats = require('pokemon-base-stats'),
       statsCalc = require('pokemon-stat-calculator'),
+      MongoID   = require('mongodb').ObjectID
       wordo     = require('wordo'),
       {rchisq, runif, rlist} = require('randgen')
 const natures = require('./pokemon-natures'),
@@ -59,7 +60,8 @@ function genPokemonName(id) {
 
 // Exported API
 
-function Pokemon(pkmid, form, nature, level, IVs, EVs) {
+function Pokemon(pkmid, form, nature, level, IVs, EVs, genMongoId = false) {
+  if (genMongoId) this._id = new MongoID()
   this.pkmid = pkmid
   this.name = genPokemonName(pkmid)
   this.originalNames = util.mapToObj(pokemon.languages, l => pokemon.getName(pkmid, l))
@@ -81,14 +83,20 @@ function Pokemon(pkmid, form, nature, level, IVs, EVs) {
   this.loc = {lng: runif(-180, 180), lat: runif(-90, 90)}
 }
 
-function randomPokemon(level) {
-  let id = runif(0, pokemon.all().length, true) + 1
-  let form = rlist(baseStats.getFormes({id: id})),
-      nature = rlist(natures.names)
-  if (level === undefined) {
+function randomPokemon({id, name, level, genMongoId = false} = {}) {
+  if (!id) {
+    if (name) {
+      id = pokemon.getId(name)
+    } else {
+      id = runif(0, pokemon.all().length, true) + 1
+    }
+  }
+  if (!level) {
     level = limit(rchisq(2) * 5, {min: 1, max: 100})
   }
-  return new Pokemon(id, form, nature, level, randomIVs(), randomEVs(level))
+  let form = rlist(baseStats.getFormes({id: id})),
+      nature = rlist(natures.names)
+  return new Pokemon(id, form, nature, level, randomIVs(), randomEVs(level), genMongoId)
 }
 
 exports.Pokemon = Pokemon
