@@ -26,14 +26,15 @@
   },
   "homepage": "https://github.com/v1ct04/benchstack#readme",
   "dependencies": {
-    "pokemon": "^1.1.0",
+    "pokemon": "https://github.com/v1ct04/pokemon/tarball/master",
     "pokemon-base-stats": "https://github.com/v1ct04/pokemon-base-stats/tarball/master",
     "pokemon-stat-calculator": "^0.1.0",
     "randgen": "^0.1.0"
   },
   "devDependencies": {
     "mongo-seed": "^0.4.4",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "wordo": "0.0.2"
   },
   "engines": {
     "node": ">=6.0.0"

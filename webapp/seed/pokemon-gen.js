@@ -1,6 +1,7 @@
 const pokemon   = require('pokemon'),
       baseStats = require('pokemon-base-stats'),
       statsCalc = require('pokemon-stat-calculator'),
+      wordo     = require('wordo'),
       {rchisq, runif, rlist} = require('randgen')
 const natures    = require('./pokemon-natures'),
       {genArray} = require('./gen-util')
@@ -33,7 +34,7 @@ function randomEVs(level) {
   let mult = rchisq() * Math.pow(level, 1.4)
   let EVs = genArray(
       6,
-      () => limit(Math.sqrt(rchisq(5) * 25 * mult), {max: 255}))
+      () => limit(Math.sqrt(rchisq(3) * 40 * mult), {max: 255}))
 
   let evSum = () => EVs.reduce((a, b) => a + b)
   while (evSum() > 510) {
@@ -43,11 +44,31 @@ function randomEVs(level) {
   return EVs;
 }
 
+function capitalizeFirst(str) {
+  let c = str[0]
+  return str.replace(c, c.toUpperCase())
+}
+
+function radjctv(type = 'all') {
+  return capitalizeFirst(rlist(wordo.adjectives[type]))
+}
+
+function genPokemonName(id) {
+  return `${radjctv('appearance')} ${radjctv('feelings')} ${pokemon.getName(id)}`
+}
+
+function mapToObj(collection, func) {
+  let obj = {}
+  collection.forEach(elm => obj[elm] = func(elm))
+  return obj
+}
+
 // Exported API
 
 function Pokemon(pkmid, form, nature, level, IVs, EVs) {
   this.pkmid = pkmid
-  this.name = pokemon.getName(pkmid)
+  this.name = genPokemonName(pkmid)
+  this.originalNames = mapToObj(pokemon.languages, l => pokemon.getName(pkmid, l))
   this.form = form
   this.nature = nature
   this.level = level
@@ -63,6 +84,7 @@ function Pokemon(pkmid, form, nature, level, IVs, EVs) {
     SpDef: stats[4],
     Spd: stats[5]
   }
+  this.loc = {lng: runif(-180, 180), lat: runif(-90, 90)}
 }
 
 function randomPokemon(level) {

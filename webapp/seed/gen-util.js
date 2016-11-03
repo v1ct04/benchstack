@@ -1,7 +1,7 @@
 exports.genArray = function (size, generator) {
-  let arr = []
+  let arr = Array(size)
   for (let i = 0; i < size; i++) {
-    arr.push(generator())
+    arr[i] = generator()
   }
   return arr
 }

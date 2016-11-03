@@ -3,6 +3,6 @@ const pokemon    = require('./pokemon-gen'),
 
 module.exports = function() {
   return {
-    "pokemon": genArray(500, pokemon.randomPokemon)
+    "pokemon": genArray(10000, pokemon.randomPokemon)
   }
 }
