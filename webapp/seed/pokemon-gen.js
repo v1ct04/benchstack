@@ -54,7 +54,16 @@ function radjctv(type = 'all') {
 }
 
 function genPokemonName(id) {
-  return `${radjctv('appearance')} ${radjctv('feelings')} ${pokemon.getName(id)}`
+  const adjTypes = [
+    ['appearance', 'feelings'],
+    ['feelings', 'colour'],
+    ['size', 'taste'],
+    ['sound', 'condition'],
+    ['numbers', 'shape']
+  ]
+  let name = rlist(adjTypes).map(util.radjctv)
+  name.push(pokemon.getName(id))
+  return name.join(' ')
 }
 
 function mapToObj(collection, func) {
