@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "description": "A mock Pokemon RESTful service simulating a web app to be benchmarked.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "seed": "node seed/seed.js"
+  },
+  "config": {
+    "dbHost": "localhost",
+    "dbPort": "27017"
   },
   "repository": {
     "type": "git",
@@ -25,6 +30,10 @@
     "pokemon-base-stats": "https://github.com/v1ct04/pokemon-base-stats/tarball/master",
     "pokemon-stat-calculator": "^0.1.0",
     "randgen": "^0.1.0"
+  },
+  "devDependencies": {
+    "mongo-seed": "^0.4.4",
+    "underscore": "^1.8.3"
   },
   "engines": {
     "node": ">=6.0.0"

@@ -2,15 +2,8 @@ const pokemon   = require('pokemon'),
       baseStats = require('pokemon-base-stats'),
       statsCalc = require('pokemon-stat-calculator'),
       {rchisq, runif, rlist} = require('randgen')
-const natures   = require('./pokemon-natures')
-
-function genArray(size, generator) {
-  arr = Array(size)
-  for (var i = 0; i < size; i++) {
-    arr[i] = generator()
-  }
-  return arr
-}
+const natures    = require('./pokemon-natures'),
+      {genArray} = require('./gen-util')
 
 function limit(v, {min = -Infinity, max = Infinity}) {
   if (v < min) v = min
