@@ -19,5 +19,6 @@
     <orderEntry type="library" name="guava-16.0.1" level="project" />
     <orderEntry type="library" scope="TEST" name="junit-4.12" level="project" />
     <orderEntry type="library" name="protobuf-2.6.1" level="project" />
+    <orderEntry type="library" name="org.json" level="project" />
   </component>
 </module>
