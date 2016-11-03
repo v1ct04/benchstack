@@ -7,23 +7,9 @@ const pokemon   = require('pokemon'),
 const natures = require('./pokemon-natures'),
       util    = require('./gen-util')
 
-function limit(v, {min = -Infinity, max = Infinity}) {
-  if (v < min) v = min
-  if (v > max) v = max
-  return Math.trunc(v)
-}
-
-function countIf(arr, predicate) {
-  let count = 0
-  for (let i = 0; i < arr.length; i++) {
-    if (predicate(arr[i], i, arr)) count++
-  }
-  return count
-}
-
 function randomIVs() {
   // check http://bulbapedia.bulbagarden.net/wiki/Individual_values#Generation_I_and_II
-  let baseIVs = util.genArray(4, () => limit(rchisq(3) * 2, {max: 15}))
+  let baseIVs = util.genArray(4, () => util.limit(rchisq(3) * 2, {max: 15}))
   let hpIV = baseIVs
     .map((v, i) => (v & 1) << i)
     .reduce((a, b) => a | b)
@@ -35,12 +21,12 @@ function randomEVs(level) {
   let mult = rchisq() * Math.pow(level, 1.4)
   let EVs = util.genArray(
       6,
-      () => limit(Math.sqrt(rchisq(3) * 40 * mult), {max: 255}))
+      () => util.limit(Math.sqrt(rchisq(3) * 40 * mult), {max: 255}))
 
   let evSum = () => EVs.reduce((a, b) => a + b)
   while (evSum() > 510) {
-    diff = (evSum() - 510) / countIf(EVs, v => v > 0)
-    EVs = EVs.map(v => limit(v - diff, {min: 0}));
+    diff = (evSum() - 510) / util.countIf(EVs, v => v > 0)
+    EVs = EVs.map(v => util.limit(v - diff, {min: 0}));
   }
   return EVs;
 }
@@ -92,7 +78,7 @@ function randomPokemon({id, name, level, genMongoId = false} = {}) {
     }
   }
   if (!level) {
-    level = limit(rchisq(2) * 5, {min: 1, max: 100})
+    level = util.limit(rchisq(2) * 5, {min: 1, max: 100})
   }
   let form = rlist(baseStats.getFormes({id: id})),
       nature = rlist(natures.names)
