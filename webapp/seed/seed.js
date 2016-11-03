@@ -17,10 +17,10 @@ async.waterfall([
       async.timesLimit(scaleFactor, 4 * ncores, function(n, next) {
         console.log(`Seeding database, iteration ${n + 1}`)
         mongoSeed.load(host, port, db, seedPath, "function", next)
-      }, done)
+      }, (err) => done(err))
     }
   ],
-  function (err, results) {
+  function (err) {
     if (err) throw err
     
     console.log("Finished seeding database!")
