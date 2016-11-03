@@ -3,8 +3,8 @@ const pokemon   = require('pokemon'),
       statsCalc = require('pokemon-stat-calculator'),
       wordo     = require('wordo'),
       {rchisq, runif, rlist} = require('randgen')
-const natures    = require('./pokemon-natures'),
-      {genArray} = require('./gen-util')
+const natures = require('./pokemon-natures'),
+      util    = require('./gen-util')
 
 function limit(v, {min = -Infinity, max = Infinity}) {
   if (v < min) v = min
@@ -22,7 +22,7 @@ function countIf(arr, predicate) {
 
 function randomIVs() {
   // check http://bulbapedia.bulbagarden.net/wiki/Individual_values#Generation_I_and_II
-  let baseIVs = genArray(4, () => limit(rchisq(3) * 2, {max: 15}))
+  let baseIVs = util.genArray(4, () => limit(rchisq(3) * 2, {max: 15}))
   let hpIV = baseIVs
     .map((v, i) => (v & 1) << i)
     .reduce((a, b) => a | b)
@@ -32,7 +32,7 @@ function randomIVs() {
 function randomEVs(level) {
   // check http://bulbapedia.bulbagarden.net/wiki/Effort_values#Stat_experience
   let mult = rchisq() * Math.pow(level, 1.4)
-  let EVs = genArray(
+  let EVs = util.genArray(
       6,
       () => limit(Math.sqrt(rchisq(3) * 40 * mult), {max: 255}))
 
@@ -42,15 +42,6 @@ function randomEVs(level) {
     EVs = EVs.map(v => limit(v - diff, {min: 0}));
   }
   return EVs;
-}
-
-function capitalizeFirst(str) {
-  let c = str[0]
-  return str.replace(c, c.toUpperCase())
-}
-
-function radjctv(type = 'all') {
-  return capitalizeFirst(rlist(wordo.adjectives[type]))
 }
 
 function genPokemonName(id) {
@@ -66,18 +57,12 @@ function genPokemonName(id) {
   return name.join(' ')
 }
 
-function mapToObj(collection, func) {
-  let obj = {}
-  collection.forEach(elm => obj[elm] = func(elm))
-  return obj
-}
-
 // Exported API
 
 function Pokemon(pkmid, form, nature, level, IVs, EVs) {
   this.pkmid = pkmid
   this.name = genPokemonName(pkmid)
-  this.originalNames = mapToObj(pokemon.languages, l => pokemon.getName(pkmid, l))
+  this.originalNames = util.mapToObj(pokemon.languages, l => pokemon.getName(pkmid, l))
   this.form = form
   this.nature = nature
   this.level = level
