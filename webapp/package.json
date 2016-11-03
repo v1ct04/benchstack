@@ -19,5 +19,14 @@
   "bugs": {
     "url": "https://github.com/v1ct04/benchstack/issues"
   },
-  "homepage": "https://github.com/v1ct04/benchstack#readme"
+  "homepage": "https://github.com/v1ct04/benchstack#readme",
+  "dependencies": {
+    "pokemon": "^1.1.0",
+    "pokemon-base-stats": "https://github.com/v1ct04/pokemon-base-stats/tarball/master",
+    "pokemon-stat-calculator": "^0.1.0",
+    "randgen": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=6.0.0"
+  }
 }
