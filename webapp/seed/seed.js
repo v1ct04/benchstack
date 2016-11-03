@@ -13,7 +13,8 @@ async.waterfall([
     function (done) {
       console.log(`Starting seed, scale factor: ${scaleFactor}`)
 
-      async.timesSeries(scaleFactor, function(n, next) {
+      let ncores = require('os').cpus().length
+      async.timesLimit(scaleFactor, 4 * ncores, function(n, next) {
         console.log(`Seeding database, iteration ${n + 1}`)
         mongoSeed.load(host, port, db, seedPath, "function", next)
       }, done)
