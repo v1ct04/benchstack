@@ -69,7 +69,7 @@ function Pokemon(pkmid, form, nature, level, IVs, EVs, genMongoId = false) {
   this.loc = {lng: runif(-180, 180), lat: runif(-90, 90)}
 }
 
-function randomPokemon({id, name, level, genMongoId = false} = {}) {
+function genPokemon({id, name, level, genMongoId = false} = {}) {
   if (!id) {
     if (name) {
       id = pokemon.getId(name)
@@ -86,4 +86,4 @@ function randomPokemon({id, name, level, genMongoId = false} = {}) {
 }
 
 exports.Pokemon = Pokemon
-exports.randomPokemon = randomPokemon
+exports.genPokemon = genPokemon
