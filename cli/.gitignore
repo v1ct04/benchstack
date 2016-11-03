@@ -42,6 +42,7 @@ out/
 !.idea/encodings.xml
 !.idea/vcs.xml
 !.idea/libraries
+!.idea/artifacts
 *.eml
 keys/
 !lib/*.jar
