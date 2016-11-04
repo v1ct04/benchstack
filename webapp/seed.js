@@ -4,7 +4,7 @@ const async     = require('async'),
       mongoSeed = require('mongo-seed'),
       path      = require('path'),
       parseArgs = require('command-line-args')
-const {host, port, db}  = require('./dbconfig')
+const dbConfig  = require('./dbconfig')
 
 const seedPath = path.join(__dirname, "seed/seed-function.js")
 
@@ -28,7 +28,9 @@ const opts = parseArgs([
     type: parseInt,
     defaultValue: require('os').cpus().length * 4
   }
-]);
+].concat(dbConfig.optionList));
+
+const {host, port, db} = dbConfig(opts)
 
 async.waterfall([
     function (next) {
