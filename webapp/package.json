@@ -34,7 +34,6 @@
   "devDependencies": {
     "command-line-args": "^3.0.2",
     "mongo-seed": "https://github.com/v1ct04/mongo-seed/tarball/master",
-    "underscore": "^1.8.3",
     "wordo": "0.0.2"
   },
   "engines": {
