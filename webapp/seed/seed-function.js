@@ -1,4 +1,4 @@
-const {genArray} = require('./gen-util'),
+const {genArray} = require('./util'),
     {genPokemon} = require('./gen-pokemon'),
     {genPokeStop, genStadium} = require('./gen-pokestop')
 

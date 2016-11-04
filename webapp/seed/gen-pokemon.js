@@ -5,7 +5,7 @@ const pokemon   = require('pokemon'),
       wordo     = require('wordo'),
       {rchisq, runif, rlist} = require('randgen')
 const natures = require('./pokemon-natures'),
-      util    = require('./gen-util')
+      util    = require('./util')
 
 function randomIVs() {
   // check http://bulbapedia.bulbagarden.net/wiki/Individual_values#Generation_I_and_II
