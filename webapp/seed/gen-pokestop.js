@@ -52,8 +52,11 @@ function genStadium(pokemonCollection) {
   let defendingPokemons = util.genArray(
       Math.trunc(rchisq(2) / 2.5),
       () => genPokemon({genMongoId: true}))
+
+  let stadium = new Stadium(defendingPokemons)
+  defendingPokemons.forEach(p => p.loc = stadium.loc)
   pokemonCollection.push(...defendingPokemons)
-  return new Stadium(defendingPokemons)
+  return stadium
 }
 
 module.exports = {
