@@ -1,10 +1,12 @@
+#!/usr/bin/env node
+
 const async     = require('async'),
       mongoSeed = require('mongo-seed'),
       path      = require('path')
-const {host, port, db}  = require('../dbconfig')
+const {host, port, db}  = require('./dbconfig')
 
 const scaleFactor = parseInt(process.argv[2]) || 10
-const seedPath = path.join(__dirname, "seed-function.js")
+const seedPath = path.join(__dirname, "seed/seed-function.js")
 
 async.waterfall([
     function (next) {
