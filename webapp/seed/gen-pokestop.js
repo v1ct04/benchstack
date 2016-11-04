@@ -1,6 +1,6 @@
 const wordo      = require('wordo'),
       randgen    = require('randgen'),
-    {genPokemon} = require('./pokemon-gen')
+    {genPokemon} = require('./gen-pokemon')
 const natures = require('./pokemon-natures'),
       util    = require('./gen-util')
 

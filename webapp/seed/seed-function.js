@@ -1,6 +1,6 @@
 const {genArray} = require('./gen-util'),
-    {genPokemon} = require('./pokemon-gen'),
-    {genPokeStop, genStadium} = require('./pokestops-gen')
+    {genPokemon} = require('./gen-pokemon'),
+    {genPokeStop, genStadium} = require('./gen-pokestop')
 
 module.exports = function() {
   return (function(data) {
