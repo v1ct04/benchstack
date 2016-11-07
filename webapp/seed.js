@@ -3,7 +3,8 @@
 const async     = require('async'),
       mongoSeed = require('mongo-seed'),
       path      = require('path'),
-      parseArgs = require('command-line-args')
+      parseArgs = require('command-line-args'),
+      monk      = require('monk')
 const dbConfig  = require('./dbconfig')
 
 const seedPath = path.join(__dirname, "seed/seed-function.js")
@@ -30,7 +31,7 @@ const opts = parseArgs([
   }
 ].concat(dbConfig.optionList));
 
-const {host, port, db} = dbConfig(opts)
+const config = dbConfig(opts)
 
 async.waterfall([
     function (next) {
@@ -38,24 +39,61 @@ async.waterfall([
         return next()
       }
       console.log("Clearing database.")
-      mongoSeed.clear(host, port, db, next)
+      mongoSeed.clear(config.host, config.port, config.db, next)
     },
-    function (done) {
+    function (next) {
       console.log(`Starting seed, scale factor: ${opts.times}`)
 
+      let seedCount = 0
       async.timesLimit(
           opts.times,
           opts.concurrency,
-          function(n, next) {
+          function(n, done) {
             console.log(`Seeding, iteration ${n + 1}.`)
-            mongoSeed.load(host, port, db, seedPath, "function", next)
+            mongoSeed.load(config.host, config.port, config.db, seedPath, "function",
+                function(err) {
+                  seedCount++
+                  done(err)
+                })
           },
-          (err) => done(err))
+          (err) => next(err, seedCount))
     }
-  ],
-  function (err) {
-    if (err) throw err
-    
-    console.log("Finished seeding database!")
-    process.exit()
-  });
+  ], afterSeed)
+
+function afterSeed(err, seedCount) {
+  if (err) {
+    console.log(`Failed seed with error: ${err}`)
+  } else {
+    console.log("Completed seeding database successfully!")
+  }
+
+  const db = monk(config.getDbUrl())
+  const metadata = db.get('metadata')
+
+  var scaleFactor = null
+  async.waterfall([
+      function(next) {
+        metadata.findOne({}, next)
+      },
+      function(obj, next) {
+        obj = obj || {scaleFactor: 0}
+        scaleFactor = obj.scaleFactor + seedCount
+        metadata.update({}, {scaleFactor: scaleFactor}, {upsert: true}, next)
+      },
+      function(result, next) {
+        console.log(`Final scale factor: ${scaleFactor}.`)
+        db.get('stadium').count({}, next)
+      },
+      function(stadiumCount, next) {
+        if (stadiumCount != 200 * scaleFactor) {
+          return next(new Error("Objects count different than expected from SF"))
+        }
+        next()
+      }
+    ],
+    function(err) {
+      if (err) console.error(err)
+      db.close(true)
+      process.exit()
+    })
+}

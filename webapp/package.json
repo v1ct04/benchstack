@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/v1ct04/benchstack#readme",
   "dependencies": {
+    "monk": "^3.1.3",
     "pokemon": "https://github.com/v1ct04/pokemon/tarball/master",
     "pokemon-base-stats": "https://github.com/v1ct04/pokemon-base-stats/tarball/master",
     "pokemon-stat-calculator": "^0.1.0",
