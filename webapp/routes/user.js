@@ -30,7 +30,7 @@ router.post('/findOrCreate', function(req, res, next) {
       }, next)
 })
 
-router.param('autoUserId', util.autoUserMiddleware)
+router.param('autoUserId', util.autoParamMiddleware('user'))
 
 router.get('/:autoUserId', function(req, res, next) {
   res.data = {user: req.user}

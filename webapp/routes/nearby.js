@@ -31,7 +31,7 @@ function closestElementMiddleware(tableName) {
     }
 }
 
-router.param('autoUserId', util.autoUserMiddleware)
+router.param('autoUserId', util.autoParamMiddleware('user'))
 
 router.get('/:autoUserId/pokemon', nearbyElementsMiddleware('pokemon', 50000))
 router.get('/:autoUserId/pokemon/closest', closestElementMiddleware('pokemon'))
