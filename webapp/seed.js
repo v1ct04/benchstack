@@ -104,6 +104,7 @@ function createIndexes(db, done) {
     next => db.get('pokemon').index({loc: "2dsphere", trainerId: 1, stadiumId: 1}, next),
     next => db.get('pokestop').index({loc: "2dsphere"}, next),
     next => db.get('stadium').index({loc: "2dsphere"}, next),
-    next => db.get('trainer').index({loc: "2dsphere"}, next)
+    next => db.get('trainer').index({loc: "2dsphere"}, next),
+    next => db.get('user').index({workerNum: 1}, {unique: true})
   ], done)
 }
