@@ -45,7 +45,7 @@ function Stadium() {
 
   this._id = new MongoID()
   this.ownerId = null
-  this.defendingPokemons = []
+  this.defendingPokemonIds = []
   this.influencePoints = rchisq(2) * 10
 }
 
@@ -56,8 +56,7 @@ function genStadium(pokemonCollection) {
   if (pokemonCount > 0) {
     let args = {genMongoId: true, stadiumId: stadium._id, loc: stadium.loc}
     let pokemons = util.genArray(pokemonCount, () => genPokemon(args))
-    stadium.defendingPokemons = pokemons.map(p => p._id)
-
+    stadium.defendingPokemonIds.push(...pokemons.map(p => p._id))
     pokemonCollection.push(...pokemons)
   }
   return stadium

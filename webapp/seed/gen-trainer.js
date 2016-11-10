@@ -41,7 +41,7 @@ function Trainer() {
     revive: Math.trunc(rchisq() * 3),
     lure: Math.trunc(rchisq())
   }
-  this.pokemons = []
+  this.pokemonIds = []
 }
 
 function genTrainer(pokemonCollection) {
@@ -49,7 +49,7 @@ function genTrainer(pokemonCollection) {
 
   let args = {genMongoId: true, trainerId: trainer._id, loc: trainer.loc}
   let pokemons = util.genArray(1 + Math.trunc(rchisq()), () => genPokemon(args))
-  trainer.pokemons = pokemons.map(p => p._id)
+  trainer.pokemonIds.push(...pokemons.map(p => p._id))
   pokemonCollection.push(...pokemons)
 
   return trainer
