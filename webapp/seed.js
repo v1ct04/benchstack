@@ -107,6 +107,6 @@ function createIndexes(db, done) {
     next => db.get('stadium').index({loc: "2dsphere"}, next),
     next => db.get('trainer').index({loc: "2dsphere"}, next),
     next => db.get('trainer').index({loc: "2dsphere", team: 1}, next),
-    next => db.get('user').index({workerNum: 1}, {unique: true})
+    next => db.get('user').index({workerNum: 1}, {unique: true}, next)
   ], done)
 }
