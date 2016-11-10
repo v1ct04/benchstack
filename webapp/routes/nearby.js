@@ -1,4 +1,5 @@
-const express = require('express')
+const express = require('express'),
+         util = require('../util')
 const router = express.Router()
 
 function nearDoc(loc, maxDist = null) {
@@ -30,17 +31,7 @@ function closestElementMiddleware(tableName) {
     }
 }
 
-router.param('autoUserId', function(req, res, next, userId) {
-  req.db.get('user').findOne({_id: userId})
-      .then(function(user) {
-        if (!user) {
-          res.status(404)
-          return next(new Error("User not found"))
-        }
-        req.user = user
-        next()
-      }, next)
-})
+router.param('autoUserId', util.autoUserMiddleware)
 
 router.get('/:autoUserId/pokemon', nearbyElementsMiddleware('pokemon', 50000))
 router.get('/:autoUserId/pokemon/closest', closestElementMiddleware('pokemon'))
