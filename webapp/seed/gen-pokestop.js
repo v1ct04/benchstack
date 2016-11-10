@@ -1,4 +1,5 @@
 const randgen    = require('randgen'),
+    MongoID      = require('mongodb').ObjectID,
     {genPokemon} = require('./gen-pokemon')
 const natures = require('./pokemon-natures'),
       util    = require('./util')
@@ -39,22 +40,26 @@ function genPokeStop() {
 }
 
 
-function Stadium(defenders = []) {
+function Stadium() {
   PokeStop.call(this)
 
+  this._id = new MongoID()
   this.ownerId = null
-  this.defendingPokemons = defenders.map(p => p._id)
+  this.defendingPokemons = []
   this.influencePoints = rchisq(2) * 10
 }
 
 function genStadium(pokemonCollection) {
-  let defendingPokemons = util.genArray(
-      Math.trunc(rchisq(2) / 2.5),
-      () => genPokemon({genMongoId: true}))
+  let stadium = new Stadium()
 
-  let stadium = new Stadium(defendingPokemons)
-  defendingPokemons.forEach(p => p.loc = stadium.loc)
-  pokemonCollection.push(...defendingPokemons)
+  let pokemonCount = Math.trunc(rchisq(2) / 2.5)
+  if (pokemonCount > 0) {
+    let args = {genMongoId: true, stadiumId: stadium._id, loc: stadium.loc}
+    let pokemons = util.genArray(pokemonCount, () => genPokemon(args))
+    stadium.defendingPokemons = pokemons.map(p => p._id)
+
+    pokemonCollection.push(...pokemons)
+  }
   return stadium
 }
 
