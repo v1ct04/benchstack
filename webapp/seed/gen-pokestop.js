@@ -46,7 +46,7 @@ function Stadium() {
   this._id = new MongoID()
   this.ownerId = null
   this.defendingPokemonIds = []
-  this.influencePoints = rchisq(2) * 10
+  this.influencePoints = Math.trunc(rchisq(2) * 10)
 }
 
 function genStadium(pokemonCollection) {
