@@ -12,6 +12,7 @@ function User(workerNum) {
 
   this.workerNum = workerNum
   this.stadiumIds = []
+  this.points = 0
 }
 
 router.post('/findOrCreate', function(req, res, next) {
