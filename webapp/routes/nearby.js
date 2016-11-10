@@ -20,9 +20,11 @@ function nearbyElementsMiddleware(tableName, maxDist) {
     }
 }
 
-function closestElementMiddleware(tableName) {
+function closestElementMiddleware(tableName, extraQueryArgs = () => ({})) {
   return function(req, res, next) {
-    req.db.get(tableName).findOne({loc: nearDoc(req.user.loc)})
+    let query = extraQueryArgs(req.user)
+    query.loc = nearDoc(req.user.loc)
+    req.db.get(tableName).findOne(query)
         .then(function(element) {
           res.data = {}
           res.data[tableName] = element
@@ -34,20 +36,13 @@ function closestElementMiddleware(tableName) {
 router.param('autoUserId', util.autoParamMiddleware('user'))
 
 router.get('/:autoUserId/pokemon', nearbyElementsMiddleware('pokemon', 50000))
-router.get('/:autoUserId/pokemon/closest', closestElementMiddleware('pokemon'))
 router.get('/:autoUserId/pokestop', nearbyElementsMiddleware('pokestop', 50000))
-router.get('/:autoUserId/pokestop/closest', closestElementMiddleware('pokestop'))
 router.get('/:autoUserId/stadium', nearbyElementsMiddleware('stadium', 50000))
 router.get('/:autoUserId/trainer', nearbyElementsMiddleware('trainer', 50000))
 
-router.get('/:autoUserId/trainer/closest', function(req, res, next) {
-  req.db.get('trainer').findOne({loc: nearDoc(req.user.loc), team: {$ne: req.user.team}})
-      .then(function(trainer) {
-        res.data = {trainer: trainer}
-        next()
-      }, next)
-})
-
+router.get('/:autoUserId/pokestop/closest', closestElementMiddleware('pokestop'))
+router.get('/:autoUserId/pokemon/closest', closestElementMiddleware('pokemon', () => ({ownerId: null, stadiumId: null})))
+router.get('/:autoUserId/trainer/closest', closestElementMiddleware('trainer', user => ({team: {$ne: user.team}})))
 
 router.get('/:autoUserId/stadium/closest', function(req, res, next) {
   var closed = false
