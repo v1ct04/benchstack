@@ -1,6 +1,6 @@
 const util = {}
 const wordo   = require('wordo'),
-      {rlist} = require('randgen');
+      {rlist, runif} = require('randgen');
 
 (function (util) {
 
@@ -43,6 +43,10 @@ const wordo   = require('wordo'),
 
   util.rnoun = function(type = 'all') {
     return capitalizeFirst(rlist(wordo.nouns[type]))
+  }
+
+  util.rloc = function() {
+    return {lng: runif(-180, 180), lat: runif(-90, 90)}
   }
 }(util))
 

@@ -66,7 +66,7 @@ function Pokemon(pkmid, form, nature, level, IVs, EVs, genMongoId = false) {
     SpDef: stats[4],
     Spd: stats[5]
   }
-  this.loc = {lng: runif(-180, 180), lat: runif(-90, 90)}
+  this.loc = util.rloc()
 }
 
 function genPokemon({id, name, level, genMongoId = false} = {}) {

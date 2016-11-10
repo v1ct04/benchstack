@@ -1,5 +1,4 @@
-const wordo      = require('wordo'),
-      randgen    = require('randgen'),
+const randgen    = require('randgen'),
     {genPokemon} = require('./gen-pokemon')
 const natures = require('./pokemon-natures'),
       util    = require('./util')
@@ -25,7 +24,7 @@ function PokeStop() {
   this.name = genPokeStopName()
   this.heightMts = rchisq(3) * 5
   this.radiusMts = rchisq() * 4
-  this.loc = {lng: runif(-180, 180), lat: runif(-90, 90)}
+  this.loc = util.rloc()
 
   this.items = {
     pokeball: Math.trunc(rchisq() * 3),
