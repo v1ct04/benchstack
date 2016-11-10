@@ -1,5 +1,6 @@
 const util = {}
 const wordo   = require('wordo'),
+      nombres = require('nombres'),
       {rlist, runif} = require('randgen');
 
 (function (util) {
@@ -43,6 +44,12 @@ const wordo   = require('wordo'),
 
   util.rnoun = function(type = 'all') {
     return capitalizeFirst(rlist(wordo.nouns[type]))
+  }
+
+  util.rname = function(forenames = 1, surnames = 1) {
+    let fores = util.genArray(forenames, () => rlist(nombres.fore))
+    let surs = util.genArray(surnames, () => rlist(nombres.sur))
+    return fores.concat(surs).join(' ')
   }
 
   util.rloc = function() {
