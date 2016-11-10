@@ -89,7 +89,7 @@ function afterSeed(err, seedCount) {
         if (stadiumCount != 200 * scaleFactor) {
           return next(new Error("Objects count different than expected from SF"))
         }
-        next()
+        createIndexes(db, next)
       }
     ],
     function(err) {
@@ -97,4 +97,13 @@ function afterSeed(err, seedCount) {
       db.close(true)
       process.exit()
     })
+}
+
+function createIndexes(db, done) {
+  async.series([
+    next => db.get('pokemon').index({loc: "2dsphere", trainerId: 1, stadiumId: 1}, next),
+    next => db.get('pokestop').index({loc: "2dsphere"}, next),
+    next => db.get('stadium').index({loc: "2dsphere"}, next),
+    next => db.get('trainer').index({loc: "2dsphere"}, next)
+  ], done)
 }
