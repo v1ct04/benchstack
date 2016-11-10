@@ -52,7 +52,7 @@ async.waterfall([
             console.log(`Seeding, iteration ${n + 1}.`)
             mongoSeed.load(config.host, config.port, config.db, seedPath, "function",
                 function(err) {
-                  seedCount++
+                  if (!err) seedCount++
                   done(err)
                 })
           },
@@ -63,6 +63,7 @@ async.waterfall([
 function afterSeed(err, seedCount) {
   if (err) {
     console.log(`Failed seed with error: ${err}`)
+    console.trace(err)
   } else {
     console.log("Completed seeding database successfully!")
   }
