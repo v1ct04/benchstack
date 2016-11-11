@@ -13,6 +13,7 @@ function findPokemonsTask(db, tableName, id, {fieldName='pokemonIds', baseQuery 
           db.get(tableName).findOne({_id: id}, next)
         },
         function(doc, next) {
+          if (!doc) return next(new Error(tableName + " not found"))
           query = Object.create(baseQuery)
           query._id = {$in: doc[fieldName]}
           db.get('pokemon').find(query, {sort: { level: -1 }}).then(
@@ -82,6 +83,7 @@ function losePokemons(db, userId, pokemons, next) {
   ], next)
 }
 
+
 router.post('/trainer/:trainerId', function(req, res, next) {
   [userId, trainerId] = [req.body.userId, req.params.trainerId]
   async.parallel({
@@ -92,18 +94,21 @@ router.post('/trainer/:trainerId', function(req, res, next) {
     // battle only the 3 strongest pokemons between trainers
     let userPoke = results.user.pokemons.slice(0, 4),
         trainerPoke = results.trainer.pokemons.slice(0, 4)
+
     let userWon = battlePokemons(userPoke, trainerPoke)
     if (userWon) {
-      let pokemonsWon = trainerPoke.map(p => p._id)
+      let pokemonsWon = trainerPoke.map(p => p._id),
+          pointsWon = trainerPoke.map(p => p.level).reduce((a,b) => a + b)
       async.parallel([
           done => req.db.get('trainer').update({_id: trainerId},
                           {$pullAll: {pokemonIds: pokemonsWon}}, done),
           done => req.db.get('user').update({_id: userId},
-                          {$addToSet: {pokemonIds: {$each: pokemonsWon}}}, done),
+                          {$addToSet: {pokemonIds: {$each: pokemonsWon}},
+                           $inc: {points: pointsWon}}, done),
           done => req.db.get('pokemon').update({_id: {$in: pokemonsWon}},
                           {$set: {ownerId: req.body.userId}}, done)
       ], function (err) {
-        res.data = {victory: 1, pokemonsWon: trainerPoke}
+        res.data = {victory: 1, pointsWon: pointsWon, pokemonsWon: trainerPoke}
         next(err)
       })
     } else {
@@ -126,27 +131,66 @@ router.post('/stadium/:stadiumId', function(req, res, next) {
     // battle with only the 3 strongest pokemons
     let userPoke = results.user.pokemons.slice(0, 4),
         {doc: stadium, pokemons: stadiumPoke} = results.stadium
+
     let userWon = battlePokemons(userPoke, stadiumPoke)
     if (userWon) {
       let winnerIds = userPoke.map(p => p._id),
-          loserIds = stadiumPoke.map(p => p._id)
+          loserIds = stadiumPoke.map(p => p._id),
+          pointsWon = stadium.points + stadiumPoke.map(p => p.level).reduce((a,b) => a + b)
       let tasks = []
       if (stadium.ownerId) {
         tasks.push(done => req.db.get('user').update({_id: stadium.ownerId},
-                                {$pullAll: {stadiumIds: [stadiumId]}}, done))
+                                {$pullAll: {stadiumIds: [stadiumId]}, $inc: {points: -stadium.points}}, done))
       }
       async.parallel(tasks.concat([
           done => req.db.get('stadium').update({_id: stadiumId},
                           {$set: {ownerId: userId, defendingPokemonIds: winnerIds}}, done),
           done => req.db.get('user').update({_id: userId},
                           {$addToSet: {stadiumIds: stadiumId, pokemonIds: {$each: loserIds}},
-                           $inc: {points: stadium.points}}, done),
+                           $inc: {points: pointsWon}}, done),
           done => req.db.get('pokemon').update({_id: {$in: winnerIds}},
                           {$set: {stadiumId: stadiumId}}, done),
           done => req.db.get('pokemon').update({_id: {$in: loserIds}},
                           {$set: {stadiumId: null, ownerId: userId}}, done),
       ]), function (err) {
-        res.data = {victory: 1, pokemonsWon: stadiumPoke}
+        res.data = {victory: 1, pointsWon: pointsWon, pokemonsWon: stadiumPoke}
+        next(err)
+      })
+    } else {
+      losePokemons(req.db, userId, userPoke, function (err) {
+        res.data = {victory: 0, pokemonsLost: userPoke}
+        next(err)
+      })
+    }
+  })
+})
+
+
+router.post('/pokemon/:pokemonId', function(req, res, next) {
+  [userId, pokemonId] = [req.body.userId, req.params.pokemonId]
+  async.parallel({
+    user: findPokemonsTask(req.db, 'user', userId, {baseQuery: {stadiumId: null}}),
+    pokemon: done => req.db.get('pokemon').findOne({_id: pokemonId}, done)
+  }, function (err, results) {
+    if (err) return next(err)
+    // battle with only the 3 strongest pokemons
+    let userPoke = results.user.pokemons.slice(0, 4),
+        pokemon = results.pokemon
+    if (!pokemon) {
+      return next(new Error("Pokemon not found"))
+    } else if (pokemon.ownerId || pokemon.stadiumId) {
+      return next(new Error("Pokemon must be free to be battled directly"))
+    }
+
+    let userWon = battlePokemons(userPoke, [pokemon])
+    if (userWon) {
+      let pointsWon = 2 * pokemon.level
+      async.parallel([
+          done => req.db.get('user').update({_id: userId},
+                          {$inc: {points: pointsWon}}, done),
+          done => req.db.get('pokemon').remove({_id: pokemonId}, done)
+      ], function (err) {
+        res.data = {victory: 1, pointsWon: pointsWon}
         next(err)
       })
     } else {
