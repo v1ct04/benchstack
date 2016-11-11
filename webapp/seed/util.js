@@ -1,7 +1,8 @@
 const util = {}
 const wordo   = require('wordo'),
       nombres = require('nombres'),
-      {rlist, runif} = require('randgen');
+      {rlist, runif} = require('randgen'),
+      offsetLocation = require('../util').offsetLocation;
 
 (function (util) {
 
@@ -52,8 +53,13 @@ const wordo   = require('wordo'),
     return fores.concat(surs).join(' ')
   }
 
-  util.rloc = function() {
-    return {lng: runif(-180, 180), lat: runif(-90, 90)}
+  util.rloc = function(center = null, maxRadius = 10000) {
+    if (!center) {
+      return {lng: runif(-180, 180), lat: runif(-90, 90)}
+    }
+    let radius = runif(0, maxRadius), angle = runif(-Math.PI, Math.PI)
+    let offset = {horz: radius * Math.cos(angle), vert: radius * Math.sin(angle)}
+    return offsetLocation(center, offset)
   }
 }(util))
 

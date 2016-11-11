@@ -1,5 +1,7 @@
 const express = require('express'),
-         util = require('../util')
+         util = require('../util'),
+   genPokemon = require('../seed/gen-pokemon').genPokemon,
+      genUtil = require('../seed/util')
 
 const router = express.Router()
 
@@ -26,6 +28,27 @@ router.post('/:autoPokestopId/collect', function(req, res, next) {
         }
         res.data = {bag: user.bag}
         next(err)
+      })
+})
+
+router.post('/:autoPokestopId/lure', function(req, res, next) {
+  let query = {_id: req.body.userId}
+  req.db.get('user').findOneAndUpdate(query, {$inc: {"bag.lure": -1}}, 'bag',
+      function(err, user) {
+        if (err) return next(err)
+        if (!user) return next(new Error("User not found"))
+        if (user.bag.lure <= 0) {
+          req.db.get('user').update(query, {$max: {"bag.lure": 0}},
+              err => next(new Error("No lures available")))
+          return;
+        }
+        let pokeGen = () => genPokemon({loc: genUtil.rloc(req.pokestop.loc, 100000)})
+        let pokemons = genUtil.genArray(20, pokeGen)
+        req.db.get('pokemon').insert(pokemons,
+            function(err) {
+              res.data = {pokemons: pokemons, bag: user.bag}
+              next(err)
+            })
       })
 })
 
