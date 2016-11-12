@@ -37,9 +37,9 @@ local.properties
 
 out/
 .idea/
+*.iml
 *.eml
 keys/
-!lib/*.jar
 
 # External tool builders
 .externalToolBuilders/

@@ -15,7 +15,7 @@ buildscript {
 apply plugin: 'com.google.protobuf'
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 sourceCompatibility = 1.8
@@ -36,6 +36,8 @@ idea{
     module {
         downloadJavadoc = true
         downloadSources = true
+
         sourceDirs += file("${protobuf.generatedFilesBaseDir}/main/java")
+        generatedSourceDirs += file("${protobuf.generatedFilesBaseDir}/main/java")
     }
 }
