@@ -7,14 +7,19 @@ const router = express.Router()
 
 function tryCapture(db, user, pokemon, done) {
   var captured = false
-  while ((user.bag.greatball > 0 || user.bag.pokeball > 0) && !captured) {
-    if (user.bag.greatball > user.bag.pokeball ||
-        (user.bag.greatball > 0 && pokemon.level > 40)) {
-      user.bag.greatball--
-      captured = randgen.rbernoulli(1 - pokemon.level / 220)
-    } else {
+  let [normalTry, greatTry] = [10, 2]
+  while (normalTry-- > 0) {
+    let success = randgen.rbernoulli(1 - pokemon.level / 120)
+    if (user.bag.pokeball > 0 && !captured) {
       user.bag.pokeball--
-      captured = randgen.rbernoulli(1 - pokemon.level / 120)
+      captured = success
+    }
+  }
+  while (greatTry-- > 0) {
+    let success = randgen.rbernoulli(1 - pokemon.level / 220)
+    if (user.bag.greatball > 0 && !captured) {
+      user.bag.greatball--
+      captured = success
     }
   }
   if (!captured) {

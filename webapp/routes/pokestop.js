@@ -38,12 +38,13 @@ router.post('/:autoPokestopId/lure', function(req, res, next) {
         if (err) return next(err)
         if (!user) return next(new Error("User not found"))
         if (user.bag.lure <= 0) {
-          req.db.get('user').update(query, {$max: {"bag.lure": 0}},
-              err => next(new Error("No lures available")))
-          return;
+          req.db.get('user').update(query, {$max: {"bag.lure": 0}})
+          user.bag.lure = 0
+          // do not fail as we need a predictable performance for the request
         }
         let pokeGen = () => genPokemon({loc: genUtil.rloc(req.pokestop.loc, 100000)})
-        let pokemons = genUtil.genArray(20, pokeGen)
+        let pokemonCount = req.body.count || 20
+        let pokemons = genUtil.genArray(pokemonCount, pokeGen)
         req.db.get('pokemon').insert(pokemons,
             function(err) {
               res.data = {pokemons: pokemons, bag: user.bag}

@@ -2,7 +2,8 @@ const express = require('express'),
         async = require('async'),
       randgen = require('randgen'),
         debug = require('debug')('pokestack:battle')
-const util = require('../seed/util')
+const util = require('../seed/util'),
+      genPokemon = require('../seed/gen-pokemon').genPokemon
 
 const router = express.Router()
 
@@ -48,10 +49,15 @@ function attackPokemon(attacker, defender) {
   debug(`${attacker.name} has attacked ${defender.name} dealing ${attackDamage} damage. Resulting HP: ${defender.stats.HP}`)
 }
 
+function fillPokemons(pokemons, count) {
+  if (count < pokemons.length) return pokemons.slice() // return a copy
+  return pokemons.concat(util.genArray(count - pokemons.length, genPokemon))
+}
+
+// Returns whether the offensive pokemons won the battle
 function battlePokemons(offensivePokemons, defensivePokemons) {
-  // not a good practice to modify fn args, so take a copy of the array
-  offensivePokemons = offensivePokemons.slice()
-  defensivePokemons = defensivePokemons.slice()
+  offensivePokemons = fillPokemons(offensivePokemons, 3)
+  defensivePokemons = fillPokemons(defensivePokemons, 3)
 
   var off = offensivePokemons.shift()
   var def = defensivePokemons.shift()
