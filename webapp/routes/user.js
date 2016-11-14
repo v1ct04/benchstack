@@ -78,9 +78,7 @@ router.post('/:autoUserId/move', function(req, res, next) {
     done => req.db.get('user')
         .update({_id: req.user._id}, updateDoc, done),
     done => req.db.get('pokemon')
-        .update({_id: { $in: req.user.pokemonIds }}, updateDoc, {multi: true}, done),
-    done => req.db.get('stadium')
-        .update({_id: { $in: req.user.stadiumIds }}, updateDoc, {multi: true}, done)
+        .update({_id: { $in: req.user.pokemonIds }}, updateDoc, {multi: true}, done)
   ], function(err) {
     res.data = {loc: newLoc};
     next(err);
