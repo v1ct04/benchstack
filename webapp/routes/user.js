@@ -1,6 +1,7 @@
 const express = require('express'),
         async = require('async'),
-         util = require('../util')
+         util = require('../util'),
+      genUtil = require('../seed/util')
 const Trainer = require('../seed/gen-trainer').Trainer
 
 const router = express.Router()
@@ -67,12 +68,17 @@ router.get('/:autoUserId/pokemons', function(req, res, next) {
 })
 
 router.post('/:autoUserId/move', function(req, res, next) {
-  let offset = req.body.offset
-  if (util.offsetDistSq(offset) > 25e8) { // at most 50km at a time
-    res.status(400)
-    return next(new Error("Cannot move more than 5km at a time"))
+  var newLoc;
+  if (req.body.offset) {
+    let offset = req.body.offset
+    if (util.offsetDistSq(offset) > 25e8) { // at most 50km at a time
+      res.status(400)
+      return next(new Error("Cannot move more than 5km at a time"))
+    }
+    newLoc = util.offsetLocation(req.user.loc, offset)
+  } else {
+    newLoc = genUtil.rloc()
   }
-  let newLoc = util.offsetLocation(req.user.loc, offset)
   let updateDoc = {$set: {loc: newLoc}}
   async.parallel([
     done => req.db.get('user')
