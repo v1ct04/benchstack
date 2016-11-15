@@ -12,6 +12,7 @@ public class Arbitrator<FunctionType> {
     private final Random mRandom = new Random();
     private int mWeightSum = 0;
 
+    @SafeVarargs
     public static <Type> Arbitrator<Type> uniform(Type... funcs) {
         Arbitrator<Type> arbitrator = new Arbitrator<>();
         for (Type func : funcs) {
