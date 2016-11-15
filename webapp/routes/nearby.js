@@ -24,7 +24,7 @@ function closestElementMiddleware(tableName, extraQueryArgs = () => ({})) {
   return function(req, res, next) {
     let query = extraQueryArgs(req.user)
     query.loc = nearDoc(req.user.loc)
-    req.db.get(tableName).findOne(query)
+    req.db.get(tableName).find(query, {limit: parseInt(req.query.count) || 1})
         .then(function(element) {
           res.data = {}
           res.data[tableName] = element
@@ -44,31 +44,6 @@ router.get('/:autoUserId/pokestop/closest', closestElementMiddleware('pokestop')
 router.get('/:autoUserId/pokemon/closest', closestElementMiddleware('pokemon', () => ({ownerId: null, stadiumId: null})))
 router.get('/:autoUserId/trainer/closest', closestElementMiddleware('trainer', user => ({team: {$ne: user.team}})))
 
-router.get('/:autoUserId/stadium/closest', function(req, res, next) {
-  var closed = false
-  req.db.get('stadium').find({loc: nearDoc(req.user.loc)})
-      .each(function(stadium, stream) {
-        let closeNext = function(err) {
-          closed = true
-          stream.close()
-          next(err)
-        }
-        if (!stadium.ownerId) {
-          res.data = {stadium: stadium}
-          return closeNext()
-        }
-        stream.pause()
-        req.db.get('user').findOne({_id: stadium.ownerId}, 'team')
-            .then(function (user) {
-              if (user.team === req.user.team) {
-                return stream.resume()
-              }
-              res.data = {stadium: stadium}
-              closeNext()
-            }, closeNext)
-      }).then(() => {
-        if (!closed) next(new Error("Not found"))
-      }, next)
-})
+router.get('/:autoUserId/stadium/closest', closestElementMiddleware('stadium', user => ({ownerId: {$ne: user._id}})))
 
 module.exports = router

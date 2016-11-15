@@ -79,16 +79,6 @@ function battlePokemons(offensivePokemons, defensivePokemons) {
   return !!off
 }
 
-function losePokemons(db, userId, pokemons, next) {
-  let lostIds = pokemons.map(p => p._id)
-  async.parallel([
-      done => db.get('user').update({_id: userId},
-                  {$pullAll: {pokemonIds: lostIds}}, done),
-      done => db.get('pokemon').update({_id: {$in: lostIds}},
-                  {$set: {ownerId: null, loc: util.rloc()}}, done)
-  ], next)
-}
-
 function setTeamTask(db, type, id, newTeam) {
   return function(done) {
     db.get(type).update({_id: id}, {$set: {team: newTeam}}, done)
@@ -142,31 +132,39 @@ router.post('/stadium/:stadiumId', function(req, res, next) {
     if (userWon) {
       let winnerIds = userPoke.map(p => p._id),
           loserIds = stadiumPoke.map(p => p._id),
-          pointsWon = stadium.points + stadiumPoke.map(p => p.level).reduce((a,b) => a + b)
+          pointsWon = stadium.points + 3 * userPoke.map(p => p.level).reduce((a,b) => a + b)
       let tasks = []
       if (stadium.ownerId) {
+        let pointsLost = stadium.points + 3 * stadiumPoke.map(p => p.level).reduce((a,b) => a + b)
         tasks.push(done => req.db.get('user').update({_id: stadium.ownerId},
-                                {$pullAll: {stadiumIds: [stadiumId]}, $inc: {points: -stadium.points}}, done))
+                                {$pull: {stadiumIds: stadiumId}, $inc: {points: -pointsLost}}, done))
       }
       async.parallel(tasks.concat([
           done => req.db.get('stadium').update({_id: stadiumId},
                           {$set: {ownerId: userId, defendingPokemonIds: winnerIds}}, done),
-          done => req.db.get('user').update({_id: userId},
-                          {$addToSet: {stadiumIds: stadiumId, pokemonIds: {$each: loserIds}},
-                           $inc: {points: pointsWon}}, done),
           done => req.db.get('pokemon').update({_id: {$in: winnerIds}},
                           {$set: {stadiumId: stadiumId}}, done),
           done => req.db.get('pokemon').update({_id: {$in: loserIds}},
-                          {$set: {stadiumId: null, ownerId: userId}}, done),
+                          {$set: {stadiumId: null}}, done),
+          done => req.db.get('user').update({_id: userId},
+                          {$addToSet: {stadiumIds: stadiumId},
+                           $inc: {points: pointsWon}}, done)
       ]), function (err) {
-        res.data = {victory: 1, pointsWon: pointsWon, pokemonsWon: stadiumPoke}
+        res.data = {victory: 1, pointsWon: pointsWon}
         next(err)
       })
     } else {
-      losePokemons(req.db, userId, userPoke, function (err) {
-        res.data = {victory: 0, pokemonsLost: userPoke}
-        next(err)
-      })
+      if (!stadium.ownerId) {
+        res.data = {victory: 0}
+        return next()
+      }
+      // Stadium owner will get the points in this case
+      let pointsGiven = userPoke.map(p => p.level).reduce((a, b) => a + b)
+      req.db.get('user').update({_id: stadium.ownerId}, {$inc: {points: pointsGiven}},
+        function (err) {
+          res.data = {victory: 0, pointsGiven: pointsGiven}
+          next(err)
+        })
     }
   })
 })
@@ -190,7 +188,7 @@ router.post('/pokemon/:pokemonId', function(req, res, next) {
 
     let userWon = battlePokemons(userPoke, [pokemon])
     if (userWon) {
-      let pointsWon = 2 * pokemon.level
+      let pointsWon = 5 * pokemon.level
       async.parallel([
           done => req.db.get('user').update({_id: userId},
                           {$inc: {points: pointsWon}}, done),
@@ -200,10 +198,8 @@ router.post('/pokemon/:pokemonId', function(req, res, next) {
         next(err)
       })
     } else {
-      losePokemons(req.db, userId, userPoke, function (err) {
-        res.data = {victory: 0, pokemonsLost: userPoke}
-        next(err)
-      })
+      res.data = {victory: 0}
+      next()
     }
   })
 })
