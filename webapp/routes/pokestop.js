@@ -1,4 +1,5 @@
 const express = require('express'),
+      randgen = require('randgen'),
          util = require('../util'),
    genPokemon = require('../seed/gen-pokemon').genPokemon,
       genUtil = require('../seed/util')
@@ -51,6 +52,25 @@ router.post('/:autoPokestopId/lure', function(req, res, next) {
               next(err)
             })
       })
+})
+
+router.post('/improve', function (req, res, next) {
+  let count = parseInt(req.body.count) || 10
+  req.db.get('pokestop').aggregate({$sample: {size: count}},
+    function (err, pokestops) {
+      if (err) return next(err)
+
+      let updateDoc = {$inc: {}}
+      let itemToAdd = randgen.rlist(['pokeball', 'greatball', 'revive', 'lure'])
+      updateDoc.$inc["items." + itemToAdd] = 1
+
+      req.db.get('pokestop').update({_id: {$in: pokestops.map(p => p._id)}},
+          updateDoc, {multi: true},
+          function (err) {
+            res.data = {improved: pokestops, item: itemToAdd}
+            next(err)
+          })
+    })
 })
 
 module.exports = router

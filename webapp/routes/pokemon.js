@@ -85,11 +85,11 @@ router.post('/levelUp', function(req, res, next) {
       if (err) return next(err)
 
       req.db.get('pokemon').update({_id: {$in: pokemons.map(p => p._id)}},
-        {$inc: {level: 1}},
-        function (err) {
-          res.data = {leveledUp: pokemons}
-          next(err)
-        })
+          {$inc: {level: 1}}, {multi: true},
+          function (err) {
+            res.data = {leveledUp: pokemons}
+            next(err)
+          })
     })
 })
 
