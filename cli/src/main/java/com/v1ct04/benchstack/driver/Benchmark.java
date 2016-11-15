@@ -18,7 +18,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.IntConsumer;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -27,7 +26,7 @@ public class Benchmark {
     private static final Logger LOGGER = Logger.getLogger(Benchmark.class.getName());
 
     private final BenchmarkConfig mConfig;
-    private final IntConsumer mFunction;
+    private final BenchmarkAction mAction;
     private final PercentileCalculator mPercentileCalculator;
 
     private Thread mBenchmarkThread;
@@ -36,20 +35,26 @@ public class Benchmark {
 
     private volatile Statistics.Calculator mStatsCalculator;
 
-    public Benchmark(BenchmarkConfig config, IntConsumer function) {
+    public Benchmark(BenchmarkConfig config, BenchmarkAction action) {
         mConfig = config;
-        mFunction = function;
+        mAction = action;
         mPercentileCalculator = new PercentileCalculator(mConfig.getDelayLimitMillis());
     }
 
-    private void workerFunction(int id) {
+    private void workerFunction(int workerNum) {
         long nanoStartTime = System.nanoTime();
-        mFunction.accept(id);
+        try {
+            mAction.execute(workerNum);
+        } catch (Exception e) {
+            LOGGER.warning("Benchmark action threw exception: " + e);
+            return;
+        }
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
 
         mPercentileCalculator.appendValue(elapsedMillis);
-        if (mStatsCalculator != null) {
-            mStatsCalculator.appendValue(elapsedMillis / 1000.0);
+        Statistics.Calculator calculator = mStatsCalculator;
+        if (calculator!= null) {
+            calculator.appendValue(elapsedMillis / 1000.0);
         }
     }
 
