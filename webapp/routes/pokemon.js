@@ -49,7 +49,7 @@ router.post('/:autoPokemonId/capture', function(req, res, next) {
     return next(new Error("Can't capture Pokemon already owned"))
   }
   req.db.get('user').findOne({_id: req.body.userId}).then(
-      function(user) {
+      function (user) {
         if (!user) {
           res.status(404)
           return next(new Error("User not found"))
@@ -59,6 +59,18 @@ router.post('/:autoPokemonId/capture', function(req, res, next) {
           next(err)
         })
       }, next)
+})
+
+router.post('/genocide', function(req, res, next) {
+  req.db.get('pokemon').aggregate({$sample: {size: parseInt(req.body.count) || 10}},
+    function (err, pokemons) {
+      if (err) return next(err)
+      req.db.get('pokemon').remove({_id: {$in: pokemons.map(p => p._id)}},
+        function (err) {
+          res.data = {removed: pokemons}
+          next(err)
+        })
+    })
 })
 
 module.exports = router
