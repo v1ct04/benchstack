@@ -61,10 +61,16 @@ router.post('/:autoPokemonId/capture', function(req, res, next) {
       }, next)
 })
 
+function samplePokemons(db, count, done) {
+  db.get('pokemon').aggregate({$sample: {size: count}}, done)
+}
+
 router.post('/genocide', function(req, res, next) {
-  req.db.get('pokemon').aggregate({$sample: {size: parseInt(req.body.count) || 10}},
+  samplePokemons(req.db, parseInt(req.body.count) || 10,
     function (err, pokemons) {
       if (err) return next(err)
+      pokemons = pokemons.filter(p => p.ownerId == null && p.stadiumId == null)
+
       req.db.get('pokemon').remove({_id: {$in: pokemons.map(p => p._id)}},
         function (err) {
           res.data = {removed: pokemons}
