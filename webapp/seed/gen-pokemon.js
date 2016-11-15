@@ -47,7 +47,7 @@ function genPokemonName(id) {
 // Exported API
 
 function Pokemon(pkmid, form, nature, level, IVs, EVs, extraArgs = {}) {
-  let {genMongoId, loc, trainerId, stadiumId} = extraArgs
+  let {genMongoId, loc, ownerId, stadiumId} = extraArgs
   if (genMongoId) this._id = new MongoID()
   this.pkmid = pkmid
   this.name = genPokemonName(pkmid)
@@ -68,11 +68,11 @@ function Pokemon(pkmid, form, nature, level, IVs, EVs, extraArgs = {}) {
     Spd: stats[5]
   }
   this.loc = loc || util.rloc()
-  this.trainerId = trainerId || null
+  this.ownerId = ownerId || null
   this.stadiumId = stadiumId || null
 }
 
-function genPokemon(args = {}) { // args = {id, name, level, loc, trainerId, stadiumId, genMongoId}
+function genPokemon(args = {}) { // args = {id, name, level, loc, ownerId, stadiumId, genMongoId}
   let {id, name, level} = args
   if (!id) {
     if (name) {

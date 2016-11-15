@@ -47,7 +47,7 @@ function Trainer() {
 function genTrainer(pokemonCollection) {
   let trainer = new Trainer()
 
-  let args = {genMongoId: true, trainerId: trainer._id, loc: trainer.loc}
+  let args = {genMongoId: true, ownerId: trainer._id, loc: trainer.loc}
   let pokemons = util.genArray(1 + Math.trunc(rchisq()), () => genPokemon(args))
   trainer.pokemonIds.push(...pokemons.map(p => p._id))
   pokemonCollection.push(...pokemons)
