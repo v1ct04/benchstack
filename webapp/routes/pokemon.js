@@ -79,4 +79,18 @@ router.post('/genocide', function(req, res, next) {
     })
 })
 
+router.post('/levelUp', function(req, res, next) {
+  samplePokemons(req.db, parseInt(req.body.count) || 10,
+    function (err, pokemons) {
+      if (err) return next(err)
+
+      req.db.get('pokemon').update({_id: {$in: pokemons.map(p => p._id)}},
+        {$inc: {level: 1}},
+        function (err) {
+          res.data = {leveledUp: pokemons}
+          next(err)
+        })
+    })
+})
+
 module.exports = router
