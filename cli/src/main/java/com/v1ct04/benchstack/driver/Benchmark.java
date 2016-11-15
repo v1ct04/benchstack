@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntConsumer;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -26,7 +27,7 @@ public class Benchmark {
     private static final Logger LOGGER = Logger.getLogger(Benchmark.class.getName());
 
     private final BenchmarkConfig mConfig;
-    private final Runnable mFunction;
+    private final IntConsumer mFunction;
     private final PercentileCalculator mPercentileCalculator;
 
     private Thread mBenchmarkThread;
@@ -35,15 +36,15 @@ public class Benchmark {
 
     private volatile Statistics.Calculator mStatsCalculator;
 
-    public Benchmark(BenchmarkConfig config, Runnable function) {
+    public Benchmark(BenchmarkConfig config, IntConsumer function) {
         mConfig = config;
         mFunction = function;
         mPercentileCalculator = new PercentileCalculator(mConfig.getDelayLimitMillis());
     }
 
-    private void workerFunction() {
+    private void workerFunction(int id) {
         long nanoStartTime = System.nanoTime();
-        mFunction.run();
+        mFunction.accept(id);
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
 
         mPercentileCalculator.appendValue(elapsedMillis);

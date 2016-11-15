@@ -34,7 +34,7 @@ public class Main {
 
         BenchmarkConfig config = parseConfig("bench.config");
         Arbitrator<Runnable> functions = Arbitrator.uniform(Main::streamSortSum, Main::oldSortSum);
-        Benchmark bench = new Benchmark(config, () -> functions.arbitrate().run());
+        Benchmark bench = new Benchmark(config, i -> functions.arbitrate().run());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         System.out.println("Starting benchmark at: " + new Date());
