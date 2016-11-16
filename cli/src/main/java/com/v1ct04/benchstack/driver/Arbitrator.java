@@ -21,12 +21,13 @@ public class Arbitrator<FunctionType> {
         return arbitrator;
     }
 
-    public void addFunction(int weight, FunctionType func) {
+    public Arbitrator<FunctionType> addFunction(int weight, FunctionType func) {
         if (weight <= 0) {
             throw new IllegalArgumentException("Weight must be a positive number");
         }
         mWeightSum += weight;
         mFunctions.put(weight, func);
+        return this;
     }
 
     public FunctionType arbitrate() {
