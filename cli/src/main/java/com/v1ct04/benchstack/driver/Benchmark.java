@@ -150,7 +150,7 @@ public class Benchmark {
         int step = 2 * config.getInitialStep();
         while (!isComplying(config)) {
             LOGGER.trace("Fine tuning down with double step: {}", step);
-            setWorkerCount(mWorkersPool.getWorkerCount() - step);
+            setWorkerCount(Math.max(mWorkersPool.getWorkerCount() - step, 0));
         }
 
         while (step > 1) {
