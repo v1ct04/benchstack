@@ -102,4 +102,11 @@ router.post('/levelUp', function(req, res, next) {
     })
 })
 
+router.get('/stats/count', function (req, res, next) {
+  req.db.get('pokemon').count({}, function(err, count) {
+    res.data = {count: count}
+    next(err)
+  })
+})
+
 module.exports = router
