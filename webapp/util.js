@@ -16,6 +16,13 @@ const util = {};
       }
   }
 
+  util.nearDoc = function (loc, maxDist = null) {
+    let geoJson = {type: "Point", coordinates: [loc.lng, loc.lat]}
+    let nearDoc = {$nearSphere: {$geometry: geoJson}}
+    if (maxDist) nearDoc.$nearSphere.$maxDistance = maxDist
+    return nearDoc
+  }
+
   util.offsetDistSq = function (offset) {
     return offset.horz * offset.horz + offset.vert * offset.vert
   }

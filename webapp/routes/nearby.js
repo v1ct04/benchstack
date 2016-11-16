@@ -2,16 +2,9 @@ const express = require('express'),
          util = require('../util')
 const router = express.Router()
 
-function nearDoc(loc, maxDist = null) {
-  let geoJson = {type: "Point", coordinates: [loc.lng, loc.lat]}
-  let nearDoc = {$nearSphere: {$geometry: geoJson}}
-  if (maxDist) nearDoc.$nearSphere.$maxDistance = maxDist
-  return nearDoc
-}
-
 function nearbyElementsMiddleware(tableName, maxDist) {
   return function(req, res, next) {
-    req.db.get(tableName).find({loc: nearDoc(req.user.loc, maxDist)})
+    req.db.get(tableName).find({loc: util.nearDoc(req.user.loc, maxDist)})
         .then(function(elements) {
           res.data = {}
           res.data[tableName] = elements
@@ -23,7 +16,7 @@ function nearbyElementsMiddleware(tableName, maxDist) {
 function closestElementMiddleware(tableName, extraQueryArgs = () => ({})) {
   return function(req, res, next) {
     let query = extraQueryArgs(req.user)
-    query.loc = nearDoc(req.user.loc)
+    query.loc = util.nearDoc(req.user.loc)
     req.db.get(tableName).find(query, {limit: parseInt(req.query.count) || 1})
         .then(function(element) {
           res.data = {}

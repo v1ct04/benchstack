@@ -2,7 +2,8 @@ const express = require('express'),
       randgen = require('randgen'),
         async = require('async'),
    genPokemon = require('../seed/gen-pokemon').genPokemon,
-         util = require('../util')
+         util = require('../util'),
+      genUtil = require('../seed/util')
 
 const router = express.Router()
 
@@ -63,15 +64,18 @@ router.post('/:autoPokemonId/capture', function(req, res, next) {
       }, next)
 })
 
-function samplePokemons(db, count, done) {
-  db.get('pokemon').aggregate({$sample: {size: count}}, done)
+function samplePokemons(db, count, loc, query, done) {
+  query.loc = util.nearDoc(loc)
+  db.get('pokemon').find(query, {limit: count}, done)
 }
 
-router.post('/genocide', function(req, res, next) {
-  samplePokemons(req.db, parseInt(req.body.count) || 10,
+router.post('/nuke', function(req, res, next) {
+  let count = parseInt(req.body.count) || 10
+  let loc = req.body.loc || genUtil.rloc()
+
+  samplePokemons(req.db, count, loc, {ownerId: null, stadiumId: null},
     function (err, pokemons) {
       if (err) return next(err)
-      pokemons = pokemons.filter(p => p.ownerId == null && p.stadiumId == null)
 
       req.db.get('pokemon').remove({_id: {$in: pokemons.map(p => p._id)}},
         function (err) {
@@ -82,7 +86,10 @@ router.post('/genocide', function(req, res, next) {
 })
 
 router.post('/levelUp', function(req, res, next) {
-  samplePokemons(req.db, parseInt(req.body.count) || 10,
+  let count = parseInt(req.body.count) || 10
+  let loc = req.body.loc || genUtil.rloc()
+
+  samplePokemons(req.db, count, loc, {level: {$lt: 100}},
     function (err, pokemons) {
       if (err) return next(err)
 
