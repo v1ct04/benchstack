@@ -16,6 +16,7 @@ import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig.Stabl
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -44,9 +45,10 @@ public class Benchmark {
     private void workerFunction(int workerNum) {
         long nanoStartTime = System.nanoTime();
         try {
-            mAction.execute(workerNum);
-        } catch (Exception e) {
-            LOGGER.warning("Benchmark action threw exception: " + e);
+            mAction.execute(workerNum).get();
+        } catch (Throwable t) {
+            if (t instanceof ExecutionException) t = t.getCause();
+            LOGGER.warning("Benchmark action threw exception: " + t);
             return;
         }
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);

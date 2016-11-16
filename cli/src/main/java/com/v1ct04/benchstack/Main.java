@@ -1,6 +1,7 @@
 package com.v1ct04.benchstack;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.TextFormat;
 import com.v1ct04.benchstack.driver.Arbitrator;
 import com.v1ct04.benchstack.driver.Benchmark;
@@ -34,7 +35,11 @@ public class Main {
 
         BenchmarkConfig config = parseConfig("bench.config");
         Arbitrator<Runnable> functions = Arbitrator.uniform(Main::streamSortSum, Main::oldSortSum);
-        Benchmark bench = new Benchmark(config, i -> functions.arbitrate().run());
+        Benchmark bench = new Benchmark(config,
+                i -> {
+                    functions.arbitrate().run();
+                    return Futures.immediateFuture(null);
+                });
 
         Stopwatch stopwatch = Stopwatch.createStarted();
         System.out.println("Starting benchmark at: " + new Date());
