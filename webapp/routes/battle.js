@@ -100,7 +100,7 @@ router.post('/trainer/:trainerId', function(req, res, next) {
     let userWon = battlePokemons(userPoke, trainerPoke)
     if (userWon) {
       let pokemonsWon = trainerPoke.map(p => p._id),
-          pointsWon = trainerPoke.map(p => p.level).reduce((a,b) => a + b)
+          pointsWon = trainerPoke.map(p => p.level).reduce((a,b) => (a + b), 0)
       async.parallel([
           setTeamTask(req.db, 'trainer', trainerId, results.user.doc.team),
           done => req.db.get('user').update({_id: userId},
@@ -132,10 +132,10 @@ router.post('/stadium/:stadiumId', function(req, res, next) {
     if (userWon) {
       let winnerIds = userPoke.map(p => p._id),
           loserIds = stadiumPoke.map(p => p._id),
-          pointsWon = stadium.points + 3 * userPoke.map(p => p.level).reduce((a,b) => a + b)
+          pointsWon = stadium.points + 3 * userPoke.map(p => p.level).reduce((a,b) => (a + b), 0)
       let tasks = []
       if (stadium.ownerId) {
-        let pointsLost = stadium.points + 3 * stadiumPoke.map(p => p.level).reduce((a,b) => a + b)
+        let pointsLost = stadium.points + 3 * stadiumPoke.map(p => p.level).reduce((a,b) => (a + b), 0)
         tasks.push(done => req.db.get('user').update({_id: stadium.ownerId},
                                 {$pull: {stadiumIds: stadiumId}, $inc: {points: -pointsLost}}, done))
       }
@@ -159,7 +159,7 @@ router.post('/stadium/:stadiumId', function(req, res, next) {
         return next()
       }
       // Stadium owner will get the points in this case
-      let pointsGiven = userPoke.map(p => p.level).reduce((a, b) => a + b)
+      let pointsGiven = userPoke.map(p => p.level).reduce((a, b) => (a + b), 0)
       req.db.get('user').update({_id: stadium.ownerId}, {$inc: {points: pointsGiven}},
         function (err) {
           res.data = {victory: 0, pointsGiven: pointsGiven}
@@ -180,10 +180,9 @@ router.post('/pokemon/:pokemonId', function(req, res, next) {
     // battle with only the 3 strongest pokemons
     let userPoke = results.user.pokemons.slice(0, 4),
         pokemon = results.pokemon
-    if (!pokemon) {
-      return next(new Error("Pokemon not found"))
-    } else if (pokemon.ownerId || pokemon.stadiumId) {
-      return next(new Error("Pokemon must be free to be battled directly"))
+    if (!pokemon || pokemon.ownerId || pokemon.stadiumId) {
+      // Instead of failing the request, simulate a battle with a fake pokemon
+      pokemon = genPokemon({genMongoId: true})
     }
 
     let userWon = battlePokemons(userPoke, [pokemon])
@@ -192,7 +191,7 @@ router.post('/pokemon/:pokemonId', function(req, res, next) {
       async.parallel([
           done => req.db.get('user').update({_id: userId},
                           {$inc: {points: pointsWon}}, done),
-          done => req.db.get('pokemon').remove({_id: pokemonId}, done)
+          done => req.db.get('pokemon').remove({_id: pokemon._id}, done)
       ], function (err) {
         res.data = {victory: 1, pointsWon: pointsWon}
         next(err)

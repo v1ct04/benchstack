@@ -1,6 +1,7 @@
 const express = require('express'),
       randgen = require('randgen'),
         async = require('async'),
+   genPokemon = require('../seed/gen-pokemon').genPokemon,
          util = require('../util')
 
 const router = express.Router()
@@ -22,7 +23,7 @@ function tryCapture(db, user, pokemon, done) {
       captured = success
     }
   }
-  if (!captured) {
+  if (!captured || !pokemon._id) {
     db.get('user').update({_id: user._id}, {$set: {bag: user.bag}},
       (err) => {done(err, captured)})
   } else {
@@ -37,7 +38,7 @@ function tryCapture(db, user, pokemon, done) {
   }
 }
 
-router.param('autoPokemonId', util.autoParamMiddleware('pokemon'))
+router.param('autoPokemonId', util.autoParamMiddleware('pokemon', genPokemon))
 
 router.get('/:autoPokemonId', function(req, res, next) {
   res.data = {pokemon: req.pokemon}
@@ -46,7 +47,8 @@ router.get('/:autoPokemonId', function(req, res, next) {
 
 router.post('/:autoPokemonId/capture', function(req, res, next) {
   if (req.pokemon.ownerId || req.pokemon.stadiumId) {
-    return next(new Error("Can't capture Pokemon already owned"))
+      // Instead of failing the request, simulate capturing a fake pokemon
+    req.pokemon = genPokemon()
   }
   req.db.get('user').findOne({_id: req.body.userId}).then(
       function (user) {

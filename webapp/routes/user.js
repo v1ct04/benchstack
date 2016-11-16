@@ -18,7 +18,7 @@ function User(workerNum) {
 
 router.post('/findOrCreate', function(req, res, next) {
   let workerNum = parseInt(req.body.workerNum)
-  if (!workerNum) {
+  if (isNaN(workerNum)) {
     res.status(400)
     return next(new Error("Invalid worker number"))
   }
@@ -41,10 +41,10 @@ router.get('/:autoUserId', function(req, res, next) {
 
 router.post('/:userId/bag/drop', function(req, res, next) {
   var updateDoc = {}
-  let items = req.body.items;
+  let items = req.body.items || {};
   ['pokeball', 'greatball', 'revive', 'lure']
-      .filter(k => k in items && parseInt(items[k]))
-      .forEach(k => updateDoc["bag." + k] = -items[k])
+      .filter(k => k in items && !isNaN(items[k]))
+      .forEach(k => updateDoc["bag." + k] = -parseInt(items[k]))
 
   let userCol = req.db.get('user')
   let query = {_id: req.params.userId}
@@ -79,6 +79,7 @@ router.post('/:autoUserId/move', function(req, res, next) {
   } else {
     newLoc = genUtil.rloc()
   }
+
   let updateDoc = {$set: {loc: newLoc}}
   async.parallel([
     done => req.db.get('user')
