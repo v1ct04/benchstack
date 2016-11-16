@@ -1,8 +1,8 @@
 package com.v1ct04.benchstack.webserver;
 
 import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.driver.BenchmarkAction;
 
 import java.util.Map;
@@ -52,11 +52,9 @@ public class WebServerBenchmarkAction implements BenchmarkAction {
     }
 
     private ListenableFuture<?> createClient(int workerNum) {
-        return Futures.transform(mClientFactory.create(mHttpClient, workerNum),
-                (WebServerClient client) -> {
-                    mClients.put(workerNum, client);
-                    return Futures.immediateFuture(null);
-                });
+        return MoreFutures.consume(
+                mClientFactory.create(mHttpClient, workerNum),
+                client -> mClients.put(workerNum, client));
     }
 
     public interface ClientFactory {

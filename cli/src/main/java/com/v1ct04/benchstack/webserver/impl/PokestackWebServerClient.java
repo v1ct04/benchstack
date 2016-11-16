@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.v1ct04.benchstack.concurrent.BottomlessQueue;
+import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.webserver.RestfulHttpClient;
 import com.v1ct04.benchstack.webserver.WebServerClient;
 import com.v1ct04.benchstack.webserver.WebServerResponseException;
@@ -146,10 +147,9 @@ public class PokestackWebServerClient implements WebServerClient {
     // Internal Requests
 
     private ListenableFuture doReset() {
-        return Futures.transform(doPost("/api/user/" + mUserId + "/move", new JSONObject()), (JSONObject r) -> {
-            mNearby.clear();
-            return Futures.immediateFuture(null);
-        });
+        return MoreFutures.consume(
+                doPost("/api/user/" + mUserId + "/move", new JSONObject()),
+                r -> mNearby.clear());
     }
 
     // Helpers
