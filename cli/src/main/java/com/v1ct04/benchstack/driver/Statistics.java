@@ -46,7 +46,8 @@ public class Statistics {
 
     public double getPercentileRank(double value) {
         int idx = Collections.binarySearch(mValues, value);
-        while (idx < mValues.size() && mValues.get(idx) == value) idx++;
+        if (idx < 0) idx = -idx;
+        while (idx < mValues.size() && mValues.get(idx) <= value) idx++;
         return idx / (double) mValues.size();
     }
 
