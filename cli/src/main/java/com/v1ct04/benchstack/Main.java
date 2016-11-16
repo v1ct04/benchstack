@@ -21,7 +21,7 @@ public class Main {
         System.setProperty("org.slf4j.simpleLogger.log." + Benchmark.class.getName(), l.toString().toLowerCase());
         System.setProperty("org.slf4j.simpleLogger.showThreadName", "false");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "MMM d, yyyy hh:mm aaa");
+        System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "MMM d, yyyy hh:mm:ss aaa");
         System.setProperty("org.slf4j.simpleLogger.levelInBrackets", "true");
     }
 

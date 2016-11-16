@@ -49,7 +49,7 @@ public class Benchmark {
             mAction.execute(workerNum).get();
         } catch (Throwable t) {
             if (t instanceof ExecutionException) t = t.getCause();
-            LOGGER.warn("Benchmark action threw exception: " + t);
+            LOGGER.warn("Benchmark action threw exception: {}", t);
             return;
         }
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
@@ -84,13 +84,13 @@ public class Benchmark {
         try {
             LOGGER.info("Starting Benchmark.");
             Range<Integer> searchLimits = execExponentialLoadStep(mConfig.getExponentialStepConfig());
-            LOGGER.info("Finished exponential step. Workers: " + mWorkersPool.getWorkerCount());
+            LOGGER.info("Finished exponential step. Workers: {}", mWorkersPool.getWorkerCount());
 
             execBinarySearchStep(mConfig.getBinarySearchConfig(), searchLimits);
-            LOGGER.info("Finished binary search step. Workers: " + mWorkersPool.getWorkerCount());
+            LOGGER.info("Finished binary search step. Workers: {}", mWorkersPool.getWorkerCount());
 
             execFineTuneStep(mConfig.getFineTuneConfig());
-            LOGGER.info("Finished fine tuning. Workers: " + mWorkersPool.getWorkerCount());
+            LOGGER.info("Finished fine tuning. Workers: {}", mWorkersPool.getWorkerCount());
 
             Statistics result = execCalculateStatsStep(mConfig.getStableStatsConfig());
             mResult.set(result);
@@ -100,7 +100,7 @@ public class Benchmark {
             LOGGER.warn("Benchmark interrupted.");
         } catch (Throwable t) {
             mResult.setException(t);
-            LOGGER.error("Benchmark failed with exception: " + t);
+            LOGGER.error("Benchmark failed with exception: {}", t);
             Throwables.propagate(t);
         } finally {
             mWorkersPool.shutdown();
@@ -149,7 +149,7 @@ public class Benchmark {
         LOGGER.trace("Starting fine tune step.");
         int step = 2 * config.getInitialStep();
         while (!isComplying(config)) {
-            LOGGER.trace("Fine tuning down with double step: " + step);
+            LOGGER.trace("Fine tuning down with double step: {}", step);
             setWorkerCount(mWorkersPool.getWorkerCount() - step);
         }
 
@@ -158,7 +158,7 @@ public class Benchmark {
             int complyingCount;
             do {
                 complyingCount = mWorkersPool.getWorkerCount();
-                LOGGER.trace("Fine tuning up with step: " + step);
+                LOGGER.trace("Fine tuning up with step: {}", step);
                 setWorkerCount(complyingCount + step);
             } while (isComplying(config));
 
@@ -167,7 +167,7 @@ public class Benchmark {
     }
 
     private Statistics execCalculateStatsStep(StableStatsStepConfig config) throws InterruptedException {
-        LOGGER.trace("Calculating stable statistics for worker count: " + mWorkersPool.getWorkerCount());
+        LOGGER.trace("Calculating stable statistics for worker count: {}", mWorkersPool.getWorkerCount());
 
         mStatsCalculator = Statistics.calculator();
         waitReportingStatus(config.getWaitTimeMin(), TimeUnit.MINUTES);
@@ -202,7 +202,7 @@ public class Benchmark {
     }
 
     private void setWorkerCount(int count) {
-        LOGGER.trace("Setting worker count to: " + count);
+        LOGGER.trace("Setting worker count to: {}", count);
         mWorkersPool.setWorkerCount(count);
         mPercentileCalculator.reset();
     }
@@ -219,11 +219,11 @@ public class Benchmark {
 
         List<Double> percentiles = Lists.newArrayList();
         do {
-            LOGGER.trace("Compliance check, waiting: " + waitTime + " " + unit);
+            LOGGER.trace("Compliance check, waiting: {} {}", waitTime, unit);
             unit.sleep(waitTime);
 
             double percentile = mPercentileCalculator.getCurrentPercentile();
-            LOGGER.trace("Current percentile: " + percentile);
+            LOGGER.trace("Current percentile: {}", percentile);
             percentiles.add(percentile);
             if (percentiles.size() < complianceTestSamples) continue;
 
@@ -231,7 +231,7 @@ public class Benchmark {
             boolean increasing = isIncreasing(percentiles.stream());
             boolean decreasing = isIncreasing(percentiles.stream().map(x -> -x));
             LOGGER.trace(
-                    "Collected %d percentiles. {complies=%b, increasing=%b, decreasing=%b}",
+                    "Collected {} percentiles. {complies={}, increasing={}, decreasing={}}",
                     complianceTestSamples, complies, increasing, decreasing);
 
             if (complies && increasing) {
@@ -249,7 +249,7 @@ public class Benchmark {
         } while (true);
 
         double percentile = mPercentileCalculator.getCurrentPercentile();
-        LOGGER.trace("Final compliance check instant percentile: " + percentile);
+        LOGGER.trace("Final compliance check instant percentile: {}", percentile);
         return percentile > percentileThreshold;
     }
 
