@@ -3,7 +3,6 @@ package com.v1ct04.benchstack.webserver;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.v1ct04.benchstack.driver.Arbitrator;
 import com.v1ct04.benchstack.driver.BenchmarkAction;
 
 import java.util.Map;

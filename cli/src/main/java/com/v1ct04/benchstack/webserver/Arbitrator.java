@@ -1,4 +1,4 @@
-package com.v1ct04.benchstack.driver;
+package com.v1ct04.benchstack.webserver;
 
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;

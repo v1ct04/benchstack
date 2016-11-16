@@ -3,10 +3,10 @@ package com.v1ct04.benchstack;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.TextFormat;
-import com.v1ct04.benchstack.driver.Arbitrator;
 import com.v1ct04.benchstack.driver.Benchmark;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig;
 import com.v1ct04.benchstack.driver.Statistics;
+import com.v1ct04.benchstack.webserver.Arbitrator;
 
 import java.io.FileReader;
 import java.io.IOException;
