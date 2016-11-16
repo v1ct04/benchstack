@@ -28,6 +28,7 @@ dependencies {
     compile group: 'org.json', name: 'json', version: '20160810+'
     compile group: 'org.asynchttpclient', name: 'async-http-client', version: '2.0+'
     compile group: 'org.asynchttpclient', name: 'async-http-client-extras-guava', version: '2.0+'
+    compile group: 'org.apache.httpcomponents', name: 'httpasyncclient', version: '4.1+'
 
     runtime group: 'org.slf4j', name: 'slf4j-simple', version: '1.7+'
 

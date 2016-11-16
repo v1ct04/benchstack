@@ -11,9 +11,12 @@ import org.asynchttpclient.Response;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import static org.asynchttpclient.extras.guava.ListenableFutureAdapter.asGuavaFuture;
 
-public class NingHttpClient implements RestfulHttpClient {
+public class NingHttpClient implements RestfulHttpClient, Closeable {
 
     private static final String BASE_URL = "http://localhost:3000";
 
@@ -23,10 +26,17 @@ public class NingHttpClient implements RestfulHttpClient {
         mClient = new DefaultAsyncHttpClient();
     }
 
+    @Override
+    public void close() throws IOException {
+        mClient.close();
+    }
+
+    @Override
     public ListenableFuture<JSONObject> doGet(String path) {
         return toJsonFuture(mClient.prepareGet(BASE_URL + path).execute());
     }
 
+    @Override
     public ListenableFuture<JSONObject> doPost(String path, JSONObject body) {
         return toJsonFuture(mClient.preparePost(BASE_URL + path)
                 .setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json")
