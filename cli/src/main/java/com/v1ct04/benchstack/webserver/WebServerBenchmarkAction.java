@@ -23,12 +23,17 @@ public class WebServerBenchmarkAction implements BenchmarkAction {
                 .addFunction(35, WebServerClient::doReadLite)
                 .addFunction(20, WebServerClient::doReadMedium)
                 .addFunction(5, WebServerClient::doReadHeavy)
-                .addFunction(15, WebServerClient::doUpdateLite)
+
+                .addFunction(12, WebServerClient::doUpdateLite)
                 .addFunction(5, WebServerClient::doUpdateMedium)
                 .addFunction(3, WebServerClient::doUpdateHeavy)
+
                 .addFunction(3, WebServerClient::doInsertLite)
                 .addFunction(2, WebServerClient::doInsertHeavy)
-                .addFunction(2, WebServerClient::doDelete)
+
+                .addFunction(3, WebServerClient::doDeleteLite)
+                .addFunction(2, WebServerClient::doDeleteHeavy)
+
                 .addFunction(6, WebServerClient::doCPULite)
                 .addFunction(4, WebServerClient::doCPUHeavy);
     }

@@ -19,7 +19,9 @@ public interface WebServerClient {
 
     ListenableFuture doInsertHeavy();
 
-    ListenableFuture doDelete();
+    ListenableFuture doDeleteLite();
+
+    ListenableFuture doDeleteHeavy();
 
     ListenableFuture doCPULite();
 
