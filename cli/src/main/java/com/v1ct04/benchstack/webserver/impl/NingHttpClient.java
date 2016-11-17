@@ -11,12 +11,11 @@ import org.asynchttpclient.Response;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 import static org.asynchttpclient.extras.guava.ListenableFutureAdapter.asGuavaFuture;
 
-public class NingHttpClient implements RestfulHttpClient, Closeable {
+public class NingHttpClient implements RestfulHttpClient {
 
     private static final String BASE_URL = "http://localhost:3000";
 

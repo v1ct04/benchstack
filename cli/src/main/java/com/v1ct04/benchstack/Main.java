@@ -6,6 +6,7 @@ import com.v1ct04.benchstack.driver.Benchmark;
 import com.v1ct04.benchstack.driver.BenchmarkAction;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig;
 import com.v1ct04.benchstack.driver.Statistics;
+import com.v1ct04.benchstack.webserver.RestfulHttpClient;
 import com.v1ct04.benchstack.webserver.WebServerBenchmarkAction;
 import com.v1ct04.benchstack.webserver.impl.NingHttpClient;
 import com.v1ct04.benchstack.webserver.impl.PokestackWebServerClient;
@@ -35,20 +36,22 @@ public class Main {
         configLogging(Level.TRACE);
 
         BenchmarkConfig config = parseConfig("bench.config");
-        BenchmarkAction action = new WebServerBenchmarkAction(
-                new NingHttpClient(), PokestackWebServerClient::asyncCreate);
-        Benchmark bench = new Benchmark(config, action);
+        try (RestfulHttpClient client = new NingHttpClient()) {
+            BenchmarkAction action = new WebServerBenchmarkAction(
+                    client, PokestackWebServerClient::asyncCreate);
+            Benchmark bench = new Benchmark(config, action);
 
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        System.out.println("Starting benchmark at: " + new Date());
-        Statistics stats = bench.start().get();
-        System.out.println("Benchmark finished at: " + new Date());
-        System.out.format("Elapsed time: %.2f minutes\n", stopwatch.elapsed(TimeUnit.SECONDS) / 60.0);
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            System.out.println("Starting benchmark at: " + new Date());
+            Statistics stats = bench.start().get();
+            System.out.println("Benchmark finished at: " + new Date());
+            System.out.format("Elapsed time: %.2f minutes\n", stopwatch.elapsed(TimeUnit.SECONDS) / 60.0);
 
-        System.out.println(stats);
-        double percentile = config.getPercentileThreshold();
-        long delayMillis = config.getDelayLimitMillis();
-        System.out.format("%dth percentile: %.3f\n", (int) (100 * percentile), stats.getPercentileValue(percentile));
-        System.out.format("%dms percentile rank: %.2f\n", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
+            System.out.println(stats);
+            double percentile = config.getPercentileThreshold();
+            long delayMillis = config.getDelayLimitMillis();
+            System.out.format("%dth percentile: %.3f\n", (int) (100 * percentile), stats.getPercentileValue(percentile));
+            System.out.format("%dms percentile rank: %.2f\n", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
+        }
     }
 }

@@ -16,10 +16,9 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.IOException;
 
-public class ApacheHttpClient implements RestfulHttpClient, Closeable {
+public class ApacheHttpClient implements RestfulHttpClient {
 
     private final HttpHost mHost;
     private final CloseableHttpAsyncClient mClient;
