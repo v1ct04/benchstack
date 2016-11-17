@@ -1,11 +1,13 @@
 package com.v1ct04.benchstack.driver;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class PercentileCalculator {
 
     private final double mBound;
 
-    private volatile long mCurrentLower = 0;
-    private volatile long mCurrentHigher = 0;
+    private final AtomicLong mCurrentLower = new AtomicLong(0);
+    private final AtomicLong mCurrentHigher = new AtomicLong(0);
 
     public PercentileCalculator(double bound) {
         mBound = bound;
@@ -13,20 +15,21 @@ public class PercentileCalculator {
 
     public void appendValue(double value) {
         if (value <= mBound) {
-            mCurrentLower++;
+            mCurrentLower.incrementAndGet();
         } else {
-            mCurrentHigher++;
+            mCurrentHigher.incrementAndGet();
         }
     }
 
     public double getCurrentPercentile() {
-        long lower = mCurrentLower;
-        double total = lower + mCurrentHigher;
+        long lower = mCurrentLower.get(); // read lower first for a pessimistic approach
+        double total = lower + mCurrentHigher.get();
         if (total == 0) return 1;
         return lower / total;
     }
 
     public void reset() {
-        mCurrentHigher = mCurrentLower = 0;
+        mCurrentHigher.set(0);
+        mCurrentLower.set(0);
     }
 }
