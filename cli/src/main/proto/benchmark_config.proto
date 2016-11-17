@@ -4,7 +4,9 @@ option java_outer_classname = "BenchmarkConfigWrapper";
 message BenchmarkConfig {
     optional int64 delayLimitMillis = 1 [default = 1000];
     optional double percentileThreshold = 2 [default = 0.95];
+
     optional int32 complianceTestSamples = 3 [default = 3];
+    optional double complianceTestConfidenceWidth = 4 [default = 2];
 
     message ExponentialStepConfig {
         optional int64 baseWaitTimeSec = 1 [default = 15];
@@ -26,8 +28,8 @@ message BenchmarkConfig {
         optional int64 waitTimeMin = 1 [default = 60];
     }
 
-    optional ExponentialStepConfig exponentialStepConfig = 4;
-    optional BinarySearchStepConfig binarySearchConfig = 5;
-    optional FineTuneStepConfig fineTuneConfig = 6;
-    optional StableStatsStepConfig stableStatsConfig = 7;
+    optional ExponentialStepConfig exponentialStepConfig = 5;
+    optional BinarySearchStepConfig binarySearchConfig = 6;
+    optional FineTuneStepConfig fineTuneConfig = 7;
+    optional StableStatsStepConfig stableStatsConfig = 8;
 }

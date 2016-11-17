@@ -3,16 +3,30 @@ package com.v1ct04.benchstack.driver;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.DoubleSummaryStatistics;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.DoubleStream;
 
 public class Statistics {
 
     public static Calculator calculator() {
         return new Calculator();
+    }
+
+    public static DoubleStream doubleStream(Collection<Double> convertible) {
+        return convertible.stream().mapToDouble(d -> d);
+    }
+
+    public static double variance(Collection<Double> values, double avg) {
+        return doubleStream(values)
+                .map(d -> (d - avg))
+                .map(d -> d * d)
+                .average()
+                .orElse(0);
+    }
+
+    public static double stdDev(Collection<Double> values, double avg) {
+        return Math.sqrt(variance(values, avg));
     }
 
     public final DoubleSummaryStatistics summary;
@@ -26,13 +40,9 @@ public class Statistics {
         mValues = values;
         Collections.sort(mValues);
 
-        summary = mValues.stream().mapToDouble(d -> d).summaryStatistics();
+        summary = doubleStream(mValues).summaryStatistics();
 
-        variance = mValues.stream()
-                .mapToDouble(d -> (d - summary.getAverage()))
-                .map(d -> d * d)
-                .average()
-                .orElse(0);
+        variance = variance(mValues, summary.getAverage());
         stdDev = Math.sqrt(variance);
         samplesPerSec = (summary.getCount() / (double) elapsedTimeSec);
     }

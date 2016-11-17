@@ -17,13 +17,11 @@ import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig.Stabl
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedList;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 public class Benchmark {
 
@@ -219,58 +217,31 @@ public class Benchmark {
     }
 
     private boolean isComplying(long baseWaitTime, TimeUnit unit) throws InterruptedException {
-        long waitTime = baseWaitTime;
-        int complianceTestSamples = mConfig.getComplianceTestSamples();
+        int samples = mConfig.getComplianceTestSamples();
         double percentileThreshold = mConfig.getPercentileThreshold();
+        double confidenceWidth = mConfig.getComplianceTestConfidenceWidth();
 
-        List<Double> percentiles = Lists.newArrayList();
+        LinkedList<Double> percentiles = Lists.newLinkedList();
         do {
-            LOGGER.trace("Compliance check, waiting: {} {}", waitTime, unit);
-            unit.sleep(waitTime);
+            LOGGER.trace("Compliance check, waiting: {} {}", baseWaitTime, unit);
+            unit.sleep(baseWaitTime);
 
             double percentile = mPercentileCalculator.getCurrentPercentile();
             LOGGER.trace("Current percentile: {}", percentile);
-            percentiles.add(percentile);
-            if (percentiles.size() < complianceTestSamples) continue;
+            percentiles.addLast(percentile);
+            if (percentiles.size() < samples) continue;
 
-            boolean complies = percentiles.stream().allMatch(p -> p > percentileThreshold);
-            boolean increasing = isIncreasing(percentiles.stream());
-            boolean decreasing = isIncreasing(percentiles.stream().map(x -> -x));
-            LOGGER.trace(
-                    "Collected {} percentiles. {complies={}, increasing={}, decreasing={}}",
-                    complianceTestSamples, complies, increasing, decreasing);
+            double avg = Statistics.doubleStream(percentiles).average().orElse(0);
+            double stdDev = Statistics.stdDev(percentiles, avg);
+            double confidenceBand = stdDev * confidenceWidth;
+            LOGGER.trace("Compliance test: Elms: {} Average: {} StdDev: {}", percentiles, avg, stdDev);
 
-            if (complies && increasing) {
+            if (avg - confidenceBand > percentileThreshold) {
                 return true;
-            } else if (!complies && decreasing) {
+            } else if (avg + confidenceBand < percentileThreshold) {
                 return false;
-            } else if (waitTime == baseWaitTime) {
-                double last = percentiles.get(percentiles.size() - 1);
-                percentiles.clear();
-                percentiles.add(last);
-                waitTime *= complianceTestSamples;
-            } else {
-                break;
             }
+            percentiles.removeFirst();
         } while (true);
-
-        double percentile = mPercentileCalculator.getCurrentPercentile();
-        LOGGER.trace("Final compliance check instant percentile: {}", percentile);
-        return percentile > percentileThreshold;
-    }
-
-    private static <Type extends Comparable<Type>> boolean isIncreasing(Stream<Type> val) {
-        Iterator<Type> it = val.iterator();
-        if (!it.hasNext()) return true;
-
-        Type last = it.next();
-        while (it.hasNext()) {
-            Type curr = it.next();
-            if (curr.compareTo(last) < 0) {
-                return false;
-            }
-            last = curr;
-        }
-        return true;
     }
 }
