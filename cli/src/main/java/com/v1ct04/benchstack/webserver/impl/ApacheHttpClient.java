@@ -3,8 +3,6 @@ package com.v1ct04.benchstack.webserver.impl;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.v1ct04.benchstack.webserver.RestfulHttpClient;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -19,15 +17,15 @@ import org.json.JSONTokener;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.concurrent.Future;
 
-public class ApacheHttpClient implements RestfulHttpClient {
+public class ApacheHttpClient extends AbstractRestfulHttpClient {
 
-    private final HttpHost mHost;
     private final CloseableHttpAsyncClient mClient;
 
-    public ApacheHttpClient(String host, int port) {
-        mHost = new HttpHost(host, port);
+    public ApacheHttpClient(URI baseUri) {
+        super(baseUri);
         mClient = HttpAsyncClients.createDefault();
         mClient.start();
     }
@@ -38,14 +36,14 @@ public class ApacheHttpClient implements RestfulHttpClient {
     }
 
     @Override
-    public ListenableFuture<JSONObject> doGet(String path) {
-        return executeJsonRequest(new HttpGet(mHost.toURI() + path));
+    public ListenableFuture<JSONObject> doGet(String uri) {
+        return executeJsonRequest(new HttpGet(uri));
     }
 
     @Override
-    public ListenableFuture<JSONObject> doPost(String path, JSONObject body) {
-        HttpPost post = new HttpPost(mHost.toURI() + path);
-        post.setEntity(new StringEntity(body.toString(), ContentType.APPLICATION_JSON));
+    protected ListenableFuture<JSONObject> doPost(String uri, String jsonContent) {
+        HttpPost post = new HttpPost(uri);
+        post.setEntity(new StringEntity(jsonContent, ContentType.APPLICATION_JSON));
         return executeJsonRequest(post);
     }
 

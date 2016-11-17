@@ -2,7 +2,6 @@ package com.v1ct04.benchstack.webserver.impl;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.v1ct04.benchstack.webserver.RestfulHttpClient;
 import com.v1ct04.benchstack.webserver.WebServerResponseException;
 import io.netty.handler.codec.http.HttpHeaders;
 import org.asynchttpclient.AsyncHttpClient;
@@ -12,16 +11,16 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URI;
 
 import static org.asynchttpclient.extras.guava.ListenableFutureAdapter.asGuavaFuture;
 
-public class NingHttpClient implements RestfulHttpClient {
-
-    private static final String BASE_URL = "http://localhost:3000";
+public class NingHttpClient extends AbstractRestfulHttpClient {
 
     private final AsyncHttpClient mClient;
 
-    public NingHttpClient() {
+    public NingHttpClient(URI baseUri) {
+        super(baseUri);
         mClient = new DefaultAsyncHttpClient();
     }
 
@@ -31,15 +30,15 @@ public class NingHttpClient implements RestfulHttpClient {
     }
 
     @Override
-    public ListenableFuture<JSONObject> doGet(String path) {
-        return toJsonFuture(mClient.prepareGet(BASE_URL + path).execute());
+    protected ListenableFuture<JSONObject> doGet(String uri) {
+        return toJsonFuture(mClient.prepareGet(uri).execute());
     }
 
     @Override
-    public ListenableFuture<JSONObject> doPost(String path, JSONObject body) {
-        return toJsonFuture(mClient.preparePost(BASE_URL + path)
+    protected ListenableFuture<JSONObject> doPost(String uri, String jsonContent) {
+        return toJsonFuture(mClient.preparePost(uri)
                 .setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/json")
-                .setBody(body.toString())
+                .setBody(jsonContent)
                 .execute());
     }
 

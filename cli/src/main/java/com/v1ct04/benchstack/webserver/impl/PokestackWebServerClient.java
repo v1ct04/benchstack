@@ -8,6 +8,8 @@ import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.webserver.RestfulHttpClient;
 import com.v1ct04.benchstack.webserver.WebServerClient;
 import com.v1ct04.benchstack.webserver.WebServerResponseException;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONObject;
 
 import java.util.Collections;
@@ -158,8 +160,8 @@ public class PokestackWebServerClient implements WebServerClient {
         return data(path, mClient.doPost(path, body));
     }
 
-    private ListenableFuture<JSONObject> doGet(String path) {
-        return data(path, mClient.doGet(path));
+    private ListenableFuture<JSONObject> doGet(String path, NameValuePair... params) {
+        return data(path, mClient.doGet(path, params));
     }
 
     private JSONObject randomBagDropBody() {
@@ -208,11 +210,11 @@ public class PokestackWebServerClient implements WebServerClient {
         }
 
         private BottomlessQueue<String> nearbyItemsQueue(String userId, String itemType, int refillCount) {
-            String basePath = String.format("/api/nearby/%s/%s/closest?count=", userId, itemType);
+            String path = String.format("/api/nearby/%s/%s/closest", userId, itemType);
 
             AsyncFunction<Integer, List<String>> supplier = (count) -> {
-                String path = basePath + count;
-                return Futures.transform(doGet(path), (JSONObject data) -> {
+                NameValuePair param = new BasicNameValuePair("count", Integer.toString(count));
+                return Futures.transform(doGet(path, param), (JSONObject data) -> {
                     if (data == null) return Collections.emptyList();
                     return StreamSupport.stream(data.getJSONArray(itemType).spliterator(), false)
                             .map(o -> (JSONObject) o)

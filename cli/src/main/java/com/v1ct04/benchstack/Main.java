@@ -10,10 +10,12 @@ import com.v1ct04.benchstack.webserver.RestfulHttpClient;
 import com.v1ct04.benchstack.webserver.WebServerBenchmarkAction;
 import com.v1ct04.benchstack.webserver.impl.NingHttpClient;
 import com.v1ct04.benchstack.webserver.impl.PokestackWebServerClient;
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.event.Level;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +38,13 @@ public class Main {
         configLogging(Level.TRACE);
 
         BenchmarkConfig config = parseConfig("bench.config");
-        try (RestfulHttpClient client = new NingHttpClient()) {
+        URI baseUri = new URIBuilder()
+                .setScheme("http")
+                .setHost("localhost")
+                .setPort(3000)
+                .build();
+
+        try (RestfulHttpClient client = new NingHttpClient(baseUri)) {
             BenchmarkAction action = new WebServerBenchmarkAction(
                     client, PokestackWebServerClient::asyncCreate);
             Benchmark bench = new Benchmark(config, action);
