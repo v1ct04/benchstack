@@ -2,8 +2,10 @@ package com.v1ct04.benchstack.driver;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Range;
+import com.v1ct04.benchstack.concurrent.ReschedulingTask;
+import com.v1ct04.benchstack.concurrent.Signaler;
 import com.v1ct04.benchstack.concurrent.TimeCondition;
-import com.v1ct04.benchstack.concurrent.VariantScheduleExecutor;
+import com.v1ct04.benchstack.concurrent.ForwardingScheduledExecutorService;
 
 import java.util.Stack;
 import java.util.concurrent.*;
@@ -15,16 +17,17 @@ class ConcurrentWorkersPool {
 
     private final IntConsumer mWorkerFunction;
     private final ThreadPoolExecutor mThreadPoolExecutor;
-    private final VariantScheduleExecutor mExecutorService;
+    private final ScheduledExecutorService mExecutor;
 
     private final Stack<Future<?>> mWorkers = new Stack<>();
 
     private final Stopwatch mSinceLastChange = Stopwatch.createUnstarted();
     private final AtomicInteger mOperationCount = new AtomicInteger(0);
+    private final Signaler mTasksResetter = new Signaler();
 
     public ConcurrentWorkersPool(IntConsumer workerFunction) {
         mThreadPoolExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 5, TimeUnit.SECONDS, new SynchronousQueue<>());
-        mExecutorService = new VariantScheduleExecutor(mThreadPoolExecutor);
+        mExecutor = new ForwardingScheduledExecutorService(mThreadPoolExecutor);
         mWorkerFunction = workerFunction;
     }
 
@@ -40,7 +43,7 @@ class ConcurrentWorkersPool {
 
     public void shutdown() {
         setWorkerCount(0);
-        mExecutorService.shutdown();
+        mExecutor.shutdown();
     }
 
     public synchronized int getWorkerCount() {
@@ -52,7 +55,7 @@ class ConcurrentWorkersPool {
         if (toAdd > 0) addWorkers(toAdd);
         else removeWorkers(-toAdd);
 
-        mExecutorService.resetPeriodicTasks();
+        mTasksResetter.signal();
         mOperationCount.set(0);
         mSinceLastChange.reset().start();
     }
@@ -93,12 +96,12 @@ class ConcurrentWorkersPool {
      */
     private Future<?> newWorker(int id) {
         LongSupplier delayGenerator = new RandomDelayGenerator(1000, 4);
-        return mExecutorService.scheduleAtVariableRate(
-                () -> {
+        return ReschedulingTask.builder(mExecutor)
+                .setInitialDelay(delayGenerator.getAsLong(), TimeUnit.MILLISECONDS)
+                .setVariableRate(delayGenerator, TimeUnit.MILLISECONDS, mTasksResetter)
+                .start(() -> {
                     mOperationCount.incrementAndGet();
                     mWorkerFunction.accept(id);
-                },
-                delayGenerator.getAsLong(), delayGenerator,
-                TimeUnit.MILLISECONDS);
+                });
     }
 }
