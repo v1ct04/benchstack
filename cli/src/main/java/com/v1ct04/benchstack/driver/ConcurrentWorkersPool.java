@@ -66,7 +66,7 @@ class ConcurrentWorkersPool {
 
     private void removeWorkers(int count) {
         while (count > 0) {
-            mWorkers.pop().cancel(false);
+            mWorkers.pop().cancel(true);
             count--;
         }
     }
@@ -94,13 +94,11 @@ class ConcurrentWorkersPool {
     private Future<?> newWorker(int id) {
         LongSupplier delayGenerator = new RandomDelayGenerator(1000, 4);
         return mExecutorService.scheduleAtVariableRate(
-                () -> workerFunction(id),
+                () -> {
+                    mOperationCount.incrementAndGet();
+                    mWorkerFunction.accept(id);
+                },
                 delayGenerator.getAsLong(), delayGenerator,
                 TimeUnit.MILLISECONDS);
-    }
-
-    private void workerFunction(int id) {
-        mOperationCount.incrementAndGet();
-        mWorkerFunction.accept(id);
     }
 }

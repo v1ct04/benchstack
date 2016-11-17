@@ -7,6 +7,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
+import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.concurrent.TimeCondition;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig.BinarySearchStepConfig;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -45,19 +47,23 @@ public class Benchmark {
 
     private void workerFunction(int workerNum) {
         long nanoStartTime = System.nanoTime();
+        Throwable t = null;
         try {
-            mAction.execute(workerNum).get();
-        } catch (Throwable t) {
-            if (t instanceof ExecutionException) t = t.getCause();
-            LOGGER.warn("Benchmark action threw exception: {}", t.toString());
+            MoreFutures.onlyGet(mAction.execute(workerNum));
+        } catch (InterruptedException | CancellationException ex) {
             return;
+        } catch (Exception e) {
+            t = e instanceof ExecutionException ? e.getCause() : e;
+            LOGGER.warn("Benchmark action threw exception: {}", t.toString());
         }
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
 
-        mPercentileCalculator.appendValue(elapsedMillis);
-        Statistics.Calculator calculator = mStatsCalculator;
-        if (calculator!= null) {
-            calculator.appendValue(elapsedMillis / 1000.0);
+        if (t == null || elapsedMillis > mConfig.getDelayLimitMillis()) {
+            mPercentileCalculator.appendValue(elapsedMillis);
+            Statistics.Calculator calculator = mStatsCalculator;
+            if (calculator!= null) {
+                calculator.appendValue(elapsedMillis / 1000.0);
+            }
         }
     }
 

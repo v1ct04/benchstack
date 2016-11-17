@@ -12,7 +12,7 @@ public class PercentileCalculator {
     }
 
     public void appendValue(double value) {
-        if (value < mBound) {
+        if (value <= mBound) {
             mCurrentLower++;
         } else {
             mCurrentHigher++;

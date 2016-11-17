@@ -2,8 +2,7 @@ package com.v1ct04.benchstack.concurrent;
 
 import com.google.common.util.concurrent.*;
 
-import java.util.concurrent.Delayed;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -45,6 +44,15 @@ public abstract class MoreFutures {
 
     public static <V> ListenableScheduledFuture<V> dereference(ListenableScheduledFuture<? extends ListenableFuture<? extends V>> future) {
         return new ForwardingListenableScheduledFuture<>(future);
+    }
+
+    public static <V> V onlyGet(Future<V> future) throws CancellationException, InterruptedException, ExecutionException {
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            future.cancel(true);
+            throw e;
+        }
     }
 
     private static class ForwardingListenableScheduledFuture<V>
