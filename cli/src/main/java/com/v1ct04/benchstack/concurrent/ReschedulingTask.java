@@ -12,7 +12,7 @@ import java.util.function.LongSupplier;
 
 public final class ReschedulingTask
         extends AbstractFuture<Void>
-        implements ListenableScheduledFuture<Void>, Runnable {
+        implements ListenableScheduledFuture<Void> {
 
     public static Builder builder(ScheduledExecutorService executor) {
         return new Builder(executor);
@@ -37,7 +37,7 @@ public final class ReschedulingTask
         mUnit = unit;
 
         // initial schedule
-        mNextExecution = executor.schedule(this, initialDelay, initialDelayUnit);
+        mNextExecution = executor.schedule(this::runAndReschedule, initialDelay, initialDelayUnit);
         if (mDelaySupplier instanceof RateToNanoDelaySupplier) {
             ((RateToNanoDelaySupplier) mDelaySupplier).mLastNanoStartTime =
                     System.nanoTime() + mNextExecution.getDelay(TimeUnit.NANOSECONDS);
@@ -60,8 +60,7 @@ public final class ReschedulingTask
         return mNextExecution.compareTo(o);
     }
 
-    @Override
-    public void run() {
+    private void runAndReschedule() {
         try {
             mCommand.run();
             reschedule();
@@ -73,7 +72,7 @@ public final class ReschedulingTask
 
     private void reschedule() {
         if (!isDone() && !mNextExecution.isCancelled()) {
-            mNextExecution = mExecutor.schedule(this, mDelaySupplier.getAsLong(), mUnit);
+            mNextExecution = mExecutor.schedule(this::runAndReschedule, mDelaySupplier.getAsLong(), mUnit);
         }
     }
 
