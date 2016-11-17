@@ -44,24 +44,29 @@ public class Benchmark {
     }
 
     private void workerFunction(int workerNum) {
-        long nanoStartTime = System.nanoTime();
-        Throwable t = null;
+        mPercentileCalculator.startExecution();
         try {
-            MoreFutures.onlyGet(mAction.execute(workerNum));
-        } catch (InterruptedException | CancellationException ex) {
-            return;
-        } catch (Exception e) {
-            t = e instanceof ExecutionException ? e.getCause() : e;
-            LOGGER.warn("Worker {}: Action threw exception: {}", workerNum, t.toString());
-        }
-        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
-
-        if (t == null || elapsedMillis > mConfig.getDelayLimitMillis()) {
-            mPercentileCalculator.appendValue(elapsedMillis);
-            Statistics.Calculator calculator = mStatsCalculator;
-            if (calculator!= null) {
-                calculator.appendValue(elapsedMillis / 1000.0);
+            long nanoStartTime = System.nanoTime();
+            Throwable t = null;
+            try {
+                MoreFutures.onlyGet(mAction.execute(workerNum));
+            } catch (InterruptedException | CancellationException ex) {
+                return;
+            } catch (Exception e) {
+                t = e instanceof ExecutionException ? e.getCause() : e;
+                LOGGER.warn("Worker {}: Action threw exception: {}", workerNum, t.toString());
             }
+            long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
+
+            if (t == null || elapsedMillis > mConfig.getDelayLimitMillis()) {
+                mPercentileCalculator.appendValue(elapsedMillis);
+                Statistics.Calculator calculator = mStatsCalculator;
+                if (calculator!= null) {
+                    calculator.appendValue(elapsedMillis / 1000.0);
+                }
+            }
+        } finally {
+            mPercentileCalculator.finishExecution();
         }
     }
 
@@ -230,7 +235,7 @@ public class Benchmark {
             unit.sleep(baseWaitTime);
 
             double percentile = mPercentileCalculator.getCurrentPercentile();
-            LOGGER.trace("Current percentile: {}", percentile);
+            LOGGER.trace("Current percentile: {} Execution count: {}", percentile, mPercentileCalculator.count());
             percentiles.addLast(percentile);
             if (percentiles.size() < samples) continue;
 
