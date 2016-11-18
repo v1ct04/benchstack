@@ -202,6 +202,8 @@ public class Benchmark {
     }
 
     private void setWorkerCount(int count) throws InterruptedException {
+        if (count == mWorkersPool.getWorkerCount()) return;
+
         LOGGER.debug("Setting worker count to: {}", count);
         int added = mWorkersPool.setWorkerCount(count);
         Future<?> unblocked = mWorkersPool.workersUnblockedFuture();
@@ -213,7 +215,7 @@ public class Benchmark {
         try {
             MoreFutures.awaitTermination(unblocked, 2, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
-            LOGGER.debug("Awaiting current workers to be unblocked...");
+            LOGGER.trace("Workers blocked! Waiting...");
             MoreFutures.awaitTermination(unblocked);
         }
 
@@ -233,7 +235,12 @@ public class Benchmark {
         LinkedList<Double> percentiles = Lists.newLinkedList();
         do {
             LOGGER.trace("Compliance check, waiting: {} {}", baseWaitTime, unit);
+            Future<?> unblocked = mWorkersPool.workersUnblockedFuture();
             unit.sleep(baseWaitTime);
+            if (!unblocked.isDone()) {
+                LOGGER.trace("Workers blocked! Waiting...");
+                MoreFutures.awaitTermination(unblocked);
+            }
 
             double percentile = mPercentileCalculator.getCurrentPercentile();
             LOGGER.trace("Current percentile: {} Execution count: {}", percentile, mPercentileCalculator.count());
