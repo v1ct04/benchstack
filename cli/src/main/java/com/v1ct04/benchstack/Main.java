@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
     private static void configLogging(Level l) throws IOException {
+        System.setProperty("org.slf4j.simpleLogger.logFile", "benchstack.log");
         System.setProperty("org.slf4j.simpleLogger.log." + Benchmark.class.getName(), l.toString().toLowerCase());
         System.setProperty("org.slf4j.simpleLogger.showThreadName", "false");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
