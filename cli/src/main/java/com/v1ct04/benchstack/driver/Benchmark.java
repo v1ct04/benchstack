@@ -17,6 +17,7 @@ import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig.Stabl
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.concurrent.*;
 
@@ -257,7 +258,7 @@ public class Benchmark {
 
     private static void logInfoAndStdOut(String format, Object... args) {
         String msg = String.format(format, args);
-        System.out.println(msg);
+        System.out.println(new Date() + " " + msg);
         LOGGER.info(msg);
     }
 
