@@ -1,8 +1,7 @@
 package com.v1ct04.benchstack.concurrent;
 
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.AbstractFuture;
-import com.google.common.util.concurrent.ListenableScheduledFuture;
+import com.google.common.util.concurrent.*;
 
 import java.util.concurrent.*;
 import java.util.function.LongSupplier;
@@ -15,12 +14,12 @@ public final class ReschedulingTask
         return new Builder(executor);
     }
 
-    private final ScheduledExecutorService mExecutor;
+    private final ListeningScheduledExecutorService mExecutor;
     private final Runnable mCommand;
     private final LongSupplier mDelaySupplier;
     private final TimeUnit mUnit;
 
-    private volatile ScheduledFuture<?> mNextExecution;
+    private volatile ListenableScheduledFuture<?> mNextExecution;
     private final Phaser mExecutionPhaser = new Phaser() {
         @Override
         protected boolean onAdvance(int phase, int registeredParties) {
@@ -37,13 +36,13 @@ public final class ReschedulingTask
                      TimeUnit initialDelayUnit,
                      LongSupplier delaySupplier,
                      TimeUnit unit) {
-        mExecutor = executor;
+        mExecutor = MoreExecutors.listeningDecorator(executor);
         mCommand = command;
         mDelaySupplier = delaySupplier;
         mUnit = unit;
 
         // initial schedule
-        mNextExecution = executor.schedule(this::runAndReschedule, initialDelay, initialDelayUnit);
+        mNextExecution = mExecutor.schedule(this::runAndReschedule, initialDelay, initialDelayUnit);
         if (mDelaySupplier instanceof RateToNanoDelaySupplier) {
             ((RateToNanoDelaySupplier) mDelaySupplier).mLastNanoStartTime =
                     System.nanoTime() + mNextExecution.getDelay(TimeUnit.NANOSECONDS);
@@ -105,6 +104,10 @@ public final class ReschedulingTask
 
     public boolean awaitExecutionInterruptibly(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
         return mExecutionPhaser.awaitAdvanceInterruptibly(mExecutionPhaser.getPhase(), time, unit) >= 0;
+    }
+
+    public ListenableFuture<?> nextExecutionFuture() {
+        return Futures.nonCancellationPropagating(mNextExecution);
     }
 
     private void runAndReschedule() {

@@ -55,6 +55,40 @@ public abstract class MoreFutures {
         }
     }
 
+    public static boolean awaitTermination(Future<?> future) throws InterruptedException {
+        try {
+            future.get();
+            return true;
+        } catch (ExecutionException | CancellationException e) {
+            return false;
+        }
+    }
+
+    public static boolean awaitTermination(Future<?> future, long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+        try {
+            future.get(timeout, unit);
+            return true;
+        } catch (ExecutionException | CancellationException e) {
+            return false;
+        }
+    }
+
+    public static ListenableFuture<Boolean> toSuccessFuture(ListenableFuture<?> future) {
+        SettableFuture<Boolean> result = SettableFuture.create();
+        Futures.addCallback(future, new FutureCallback<Object>() {
+            @Override
+            public void onSuccess(Object o) {
+                result.set(true);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                result.set(false);
+            }
+        });
+        return result;
+    }
+
     private static class ForwardingListenableScheduledFuture<V>
             extends ForwardingListenableFuture.SimpleForwardingListenableFuture<V>
             implements ListenableScheduledFuture<V> {

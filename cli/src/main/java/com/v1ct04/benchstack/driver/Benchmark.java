@@ -18,10 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class Benchmark {
 
@@ -206,10 +203,19 @@ public class Benchmark {
     private void setWorkerCount(int count) throws InterruptedException {
         LOGGER.debug("Setting worker count to: {}", count);
         int added = mWorkersPool.setWorkerCount(count);
+        Future<?> unblocked = mWorkersPool.workersUnblockedFuture();
+
         if (added < 0) {
             LOGGER.debug("Awaiting termination of stopped workers...");
             mWorkersPool.awaitStoppedWorkersTermination();
         }
+        try {
+            MoreFutures.awaitTermination(unblocked, 2, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            LOGGER.debug("Awaiting current workers to be unblocked...");
+            MoreFutures.awaitTermination(unblocked);
+        }
+
         mPercentileCalculator.reset();
     }
 

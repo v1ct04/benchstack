@@ -2,13 +2,19 @@ package com.v1ct04.benchstack.driver;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.v1ct04.benchstack.concurrent.ForwardingScheduledExecutorService;
+import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.concurrent.ReschedulingTask;
 import com.v1ct04.benchstack.concurrent.Signaler;
 
 import java.util.List;
 import java.util.Stack;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntConsumer;
 import java.util.function.LongSupplier;
@@ -72,7 +78,7 @@ class ConcurrentWorkersPool {
     private synchronized void removeWorkers(int count) {
         while (count > 0) {
             ReschedulingTask worker = mWorkers.pop();
-            worker.cancel(true);
+            worker.cancel(false);
             mStoppedWorkers.add(worker);
             count--;
         }
@@ -89,6 +95,14 @@ class ConcurrentWorkersPool {
         for (ReschedulingTask task : toAwait) {
             task.awaitTerminationInterruptibly();
         }
+    }
+
+    public synchronized ListenableFuture<?> workersUnblockedFuture() {
+        Iterable<ListenableFuture<Boolean>> futures = mWorkers.stream()
+                .map(ReschedulingTask::nextExecutionFuture)
+                .map(MoreFutures::toSuccessFuture)
+                ::iterator;
+        return Futures.allAsList(futures);
     }
 
     /**
