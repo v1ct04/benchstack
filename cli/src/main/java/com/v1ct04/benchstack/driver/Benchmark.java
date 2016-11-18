@@ -52,7 +52,7 @@ public class Benchmark {
             return;
         } catch (Exception e) {
             t = e instanceof ExecutionException ? e.getCause() : e;
-            LOGGER.warn("Benchmark action threw exception: {}", t.toString());
+            LOGGER.warn("Worker {}: Action threw exception: {}", workerNum, t.toString());
         }
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nanoStartTime);
 
