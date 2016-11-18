@@ -31,7 +31,6 @@ public class Benchmark {
 
     private Thread mBenchmarkThread;
     private ConcurrentWorkersPool mWorkersPool;
-    private SettableFuture<Statistics> mResult;
 
     private volatile Statistics.Calculator mStatsCalculator;
 
@@ -69,14 +68,10 @@ public class Benchmark {
     }
 
     public ListenableFuture<Statistics> start() {
-        if (mResult != null) {
+        if (mBenchmarkThread != null) {
             throw new IllegalStateException("Benchmark already started");
         }
-
-        mResult = SettableFuture.create();
-        mBenchmarkThread = Executors.defaultThreadFactory().newThread(this::executeBenchmark);
-        mBenchmarkThread.start();
-        return mResult;
+        return executeBenchmarkAsync();
     }
 
     public void stop() {
@@ -86,7 +81,27 @@ public class Benchmark {
         mBenchmarkThread.interrupt();
     }
 
-    private void executeBenchmark() {
+    private ListenableFuture<Statistics> executeBenchmarkAsync() {
+        SettableFuture<Statistics> result = SettableFuture.create();
+
+        mBenchmarkThread = Executors.defaultThreadFactory().newThread(() -> {
+           try {
+               result.set(executeBenchmark());
+           } catch (InterruptedException e) {
+               result.setException(e);
+               LOGGER.warn("Benchmark interrupted.");
+           } catch (Throwable t) {
+               result.setException(t);
+               LOGGER.error("Benchmark failed with exception: {}", t);
+               Throwables.propagate(t);
+           }
+        });
+        mBenchmarkThread.start();
+
+        return result;
+    }
+
+    private Statistics executeBenchmark() throws InterruptedException {
         mWorkersPool = new ConcurrentWorkersPool(this::workerFunction);
         try {
             logInfoAndStdOut("Starting Benchmark.");
@@ -95,23 +110,25 @@ public class Benchmark {
 
             execBinarySearchStep(mConfig.getBinarySearchConfig(), searchLimits);
 
-            execFineTuneStep(mConfig.getFineTuneConfig());
+            do {
+                double score = execFineTuneStep(mConfig.getFineTuneConfig());
 
-            Statistics result = execCalculateStatsStep(mConfig.getStableStatsConfig());
-            mResult.set(result);
+                if (score > 0) {
+                    break;
+                } else if (score < -2 * mConfig.getFineTuneConfig().getInitialStep()) {
+                    logInfoAndStdOut("Unexpectedly bad result from fine tune, doing binary search again.");
+                    searchLimits = searchLimits.intersection(Range.atMost(mWorkersPool.getWorkerCount()));
+                    execBinarySearchStep(mConfig.getBinarySearchConfig(), searchLimits);
+                } else {
+                    logInfoAndStdOut("Fine tune result uncompliant, will try again.");
+                }
+            } while (true);
 
-            logInfoAndStdOut("Finished Benchmark.");
-        } catch (InterruptedException e) {
-            mResult.setException(e);
-            LOGGER.warn("Benchmark interrupted.");
-        } catch (Throwable t) {
-            mResult.setException(t);
-            LOGGER.error("Benchmark failed with exception: {}", t);
-            Throwables.propagate(t);
+            return execCalculateStatsStep(mConfig.getStableStatsConfig());
         } finally {
             mWorkersPool.shutdown();
             mWorkersPool = null;
-            mStatsCalculator = null;
+            logInfoAndStdOut("Finished Benchmark.");
         }
     }
 
@@ -154,35 +171,45 @@ public class Benchmark {
         logInfoAndStdOut("Finished binary search step. Final workers: %d", min);
     }
 
-    private void execFineTuneStep(FineTuneStepConfig config) throws InterruptedException {
+    private double execFineTuneStep(FineTuneStepConfig config) throws InterruptedException {
         logInfoAndStdOut("Starting fine tune step.");
 
-        int step = 2 * config.getInitialStep();
-        while (!isComplying(config)) {
-            LOGGER.debug("Fine tuning down with double step: {}", step);
-            setWorkerCount(Math.max(mWorkersPool.getWorkerCount() - step, 0));
+        double score = complianceScore(config);
+        if (score < 0) {
+            int tuneDownStep = (int) Math.min(Math.round(-score), 2 * config.getInitialStep());
+            do {
+                LOGGER.debug("Fine tuning down with step: {}", tuneDownStep);
+                setWorkerCount(Math.max(mWorkersPool.getWorkerCount() - tuneDownStep, 0));
+            } while (!isComplying(config));
         }
 
-        while (step > 1) {
-            step /= 2;
-            int complyingCount;
-            do {
-                complyingCount = mWorkersPool.getWorkerCount();
+        int complyingCount = mWorkersPool.getWorkerCount();
+        for (int step = config.getInitialStep(); step > 1; step /= 2) {
+            while (true) {
                 LOGGER.debug("Fine tuning up with step: {}", step);
                 setWorkerCount(complyingCount + step);
-            } while (isComplying(config));
-
-            setWorkerCount(complyingCount);
+                if (isComplying(config)) {
+                    complyingCount += step;
+                } else {
+                    break;
+                }
+            }
         }
+        setWorkerCount(complyingCount);
         logInfoAndStdOut("Finished fine tuning. Workers: %d", mWorkersPool.getWorkerCount());
+        return complianceScore(config);
     }
 
     private Statistics execCalculateStatsStep(StableStatsStepConfig config) throws InterruptedException {
         logInfoAndStdOut("Calculating stable statistics for worker count: %d", mWorkersPool.getWorkerCount());
 
         mStatsCalculator = Statistics.calculator();
-        waitReportingStatus(config.getWaitTimeMin(), TimeUnit.MINUTES);
-        return mStatsCalculator.calculate();
+        try {
+            waitReportingStatus(config.getWaitTimeMin(), TimeUnit.MINUTES);
+            return mStatsCalculator.calculate();
+        } finally {
+            mStatsCalculator = null;
+        }
     }
 
     private void waitReportingStatus(long timeout, TimeUnit unit) throws InterruptedException {
@@ -223,11 +250,19 @@ public class Benchmark {
     }
 
     private boolean isComplying(Message msg) throws InterruptedException {
-        FieldDescriptor waitTimeField = msg.getDescriptorForType().findFieldByName("baseWaitTimeSec");
-        return isComplying((Long) msg.getField(waitTimeField), TimeUnit.SECONDS);
+        return complianceScore(msg) > 0;
     }
 
-    private boolean isComplying(long baseWaitTime, TimeUnit unit) throws InterruptedException {
+    private double complianceScore(Message msg) throws InterruptedException {
+        FieldDescriptor waitTimeField = msg.getDescriptorForType().findFieldByName("baseWaitTimeSec");
+        return complianceScore((Long) msg.getField(waitTimeField), TimeUnit.SECONDS);
+    }
+
+    /**
+     * Score is >=1 if complies or <=-1 if not, and the higher the absolute value the further it is
+     * from the percentile threshold.
+     */
+    private double complianceScore(long baseWaitTime, TimeUnit unit) throws InterruptedException {
         int samples = mConfig.getComplianceTestSamples();
         double percentileThreshold = mConfig.getPercentileThreshold();
         double confidenceWidth = mConfig.getComplianceTestConfidenceWidth();
@@ -252,12 +287,16 @@ public class Benchmark {
             double confidenceBand = stdDev * confidenceWidth;
             LOGGER.trace("Compliance test: Elms: {} Average: {} StdDev: {}", percentiles, avg, stdDev);
 
-            if (avg - confidenceBand > percentileThreshold) {
-                LOGGER.trace("Complies!");
-                return true;
+            if (percentile >= percentileThreshold) {
+                if (avg - confidenceBand >= percentileThreshold) {
+                    double score = Math.abs(Math.log(percentileThreshold) / Math.log(percentile));
+                    LOGGER.debug("Complies! Score: {}", score);
+                    return score;
+                }
             } else if (avg + confidenceBand < percentileThreshold) {
-                LOGGER.trace("Doesn't comply!");
-                return false;
+                double score = -Math.abs(Math.log(percentile) / Math.log(percentileThreshold));
+                LOGGER.debug("Doesn't comply! Score: {}", score);
+                return score;
             }
             percentiles.removeFirst();
         } while (true);
