@@ -4,10 +4,7 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
 
-import java.util.concurrent.Delayed;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.LongSupplier;
 
 public final class ReschedulingTask
@@ -24,6 +21,15 @@ public final class ReschedulingTask
     private final TimeUnit mUnit;
 
     private volatile ScheduledFuture<?> mNextExecution;
+    private final Phaser mExecutionPhaser = new Phaser() {
+        @Override
+        protected boolean onAdvance(int phase, int registeredParties) {
+            // Terminate the Phaser only if this Task has been cancelled
+            // (or failed) and there are no registered parties (a running
+            // execution will be a registered party).
+            return isDone() && registeredParties == 0;
+        }
+    };
 
     private ReschedulingTask(ScheduledExecutorService executor,
                      Runnable command,
@@ -46,8 +52,17 @@ public final class ReschedulingTask
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
+        if (!super.cancel(mayInterruptIfRunning)) return false;
+
+        mExecutionPhaser.register();
+        mExecutionPhaser.arriveAndDeregister();
+        // At this point the Phaser is either in the terminated state or
+        // has one registered party and will terminate when it de-registers
+        // itself. This other party can only be an execution of this task,
+        // thus the Phaser will terminate when the last execution finishes.
+
         mNextExecution.cancel(mayInterruptIfRunning);
-        return super.cancel(mayInterruptIfRunning);
+        return true;
     }
 
     @Override
@@ -60,19 +75,65 @@ public final class ReschedulingTask
         return mNextExecution.compareTo(o);
     }
 
+    /**
+     * Whether this task has been cancelled and the last execution has already finished.
+     */
+    public boolean isTerminated() {
+        return mExecutionPhaser.isTerminated();
+    }
+
+    public void awaitTermination() {
+        while (awaitExecution());
+    }
+
+    public void awaitTerminationInterruptibly() throws InterruptedException {
+        while (awaitExecutionInterruptibly());
+    }
+
+    /**
+     * Await one execution to terminate or return false immediately if already cancelled
+     * and not running.
+     * @return False if this task has been terminated (cancelled) and won't run again.
+     */
+    public boolean awaitExecution() {
+        return mExecutionPhaser.awaitAdvance(mExecutionPhaser.getPhase()) >= 0;
+    }
+
+    public boolean awaitExecutionInterruptibly() throws InterruptedException {
+        return mExecutionPhaser.awaitAdvanceInterruptibly(mExecutionPhaser.getPhase()) >= 0;
+    }
+
+    public boolean awaitExecutionInterruptibly(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
+        return mExecutionPhaser.awaitAdvanceInterruptibly(mExecutionPhaser.getPhase(), time, unit) >= 0;
+    }
+
     private void runAndReschedule() {
+        if (mExecutionPhaser.register() < 0) return;
+
         try {
             mCommand.run();
-            reschedule();
         } catch (Throwable t) {
             setException(t);
             throw Throwables.propagate(t);
+        } finally {
+            // We can't reschedule in the registered state otherwise it's possible
+            // that the Phaser never advances phase, when the next execution
+            // starts and registers itself before this one arrives and de-registers.
+            mExecutionPhaser.arriveAndDeregister();
+            reschedule();
         }
     }
 
     private void reschedule() {
-        if (!isDone() && !mNextExecution.isCancelled()) {
+        if (!isDone()) {
             mNextExecution = mExecutor.schedule(this::runAndReschedule, mDelaySupplier.getAsLong(), mUnit);
+
+            // In case #cancel() has been called after the if check and before the mNextExecution
+            // update above, avoid keeping the scheduled task in the executor by rechecking if
+            // we are done and cancelling the next execution future if so.
+            if (isDone()) {
+                mNextExecution.cancel(false);
+            }
         }
     }
 
