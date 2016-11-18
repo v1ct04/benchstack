@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class Main {
     private static void configLogging(Level l) throws IOException {
         System.setProperty("org.slf4j.simpleLogger.logFile", "benchstack.log");
-        System.setProperty("org.slf4j.simpleLogger.log." + Benchmark.class.getName(), l.toString().toLowerCase());
+        System.setProperty("org.slf4j.simpleLogger.log.com.v1ct04.benchstack", l.toString().toLowerCase());
         System.setProperty("org.slf4j.simpleLogger.showThreadName", "false");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "MMM d, yyyy hh:mm:ss aaa");
@@ -60,7 +60,7 @@ public class Main {
             double percentile = config.getPercentileThreshold();
             long delayMillis = config.getDelayLimitMillis();
             System.out.format("%dth percentile: %.3f\n", (int) (100 * percentile), stats.getPercentileValue(percentile));
-            System.out.format("%dms percentile rank: %.2f\n", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
+            System.out.format("%dms percentile rank: %.3f\n", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
         }
     }
 }
