@@ -124,7 +124,9 @@ public class Benchmark {
                 }
             } while (true);
 
-            return execCalculateStatsStep(mConfig.getStableStatsConfig());
+            Statistics stats = execCalculateStatsStep(mConfig.getStableStatsConfig());
+            printFinalResults(stats);
+            return stats;
         } finally {
             mWorkersPool.shutdown();
             mWorkersPool = null;
@@ -202,7 +204,9 @@ public class Benchmark {
 
     private Statistics execCalculateStatsStep(StableStatsStepConfig config) throws InterruptedException {
         logInfoAndStdOut("Calculating stable statistics for worker count: %d", mWorkersPool.getWorkerCount());
+        logInfoAndStdOut("Wait time: %d minutes", config.getWaitTimeMin());
 
+        mPercentileCalculator.reset();
         mStatsCalculator = Statistics.calculator();
         try {
             waitReportingStatus(config.getWaitTimeMin(), TimeUnit.MINUTES);
@@ -210,6 +214,15 @@ public class Benchmark {
         } finally {
             mStatsCalculator = null;
         }
+    }
+
+    private void printFinalResults(Statistics stats) {
+        logInfoAndStdOut("Final statistics: %s", stats.toString());
+
+        double percentile = mConfig.getPercentileThreshold();
+        long delayMillis = mConfig.getDelayLimitMillis();
+        logInfoAndStdOut("%dth percentile: %.3f", (int) (100 * percentile), stats.getPercentileValue(percentile));
+        logInfoAndStdOut("%dms percentile rank: %.3f", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
     }
 
     private void waitReportingStatus(long timeout, TimeUnit unit) throws InterruptedException {
@@ -223,7 +236,13 @@ public class Benchmark {
                     mPercentileCalculator.getCurrentPercentile(),
                     mWorkersPool.getWorkerCount(),
                     mWorkersPool.getThreadCount());
-            if (endCondition.await(1, TimeUnit.SECONDS)) break;
+
+            if (endCondition.await(3, TimeUnit.SECONDS)) {
+                LOGGER.debug("Finished waiting. Final OPS: {} Percentile: {}",
+                        mWorkersPool.getCurrentOperationsPerSec(),
+                        mPercentileCalculator.getCurrentPercentile());
+                break;
+            }
             moveBackLines(4);
         } while (true);
     }

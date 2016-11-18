@@ -2,10 +2,10 @@ package com.v1ct04.benchstack;
 
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.TextFormat;
+import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.driver.Benchmark;
 import com.v1ct04.benchstack.driver.BenchmarkAction;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig;
-import com.v1ct04.benchstack.driver.Statistics;
 import com.v1ct04.benchstack.webserver.RestfulHttpClient;
 import com.v1ct04.benchstack.webserver.WebServerBenchmarkAction;
 import com.v1ct04.benchstack.webserver.impl.NingHttpClient;
@@ -52,15 +52,9 @@ public class Main {
 
             Stopwatch stopwatch = Stopwatch.createStarted();
             System.out.println("Starting benchmark at: " + new Date());
-            Statistics stats = bench.start().get();
+            MoreFutures.awaitTermination(bench.start());
             System.out.println("Benchmark finished at: " + new Date());
             System.out.format("Elapsed time: %.2f minutes\n", stopwatch.elapsed(TimeUnit.SECONDS) / 60.0);
-
-            System.out.println(stats);
-            double percentile = config.getPercentileThreshold();
-            long delayMillis = config.getDelayLimitMillis();
-            System.out.format("%dth percentile: %.3f\n", (int) (100 * percentile), stats.getPercentileValue(percentile));
-            System.out.format("%dms percentile rank: %.3f\n", delayMillis, stats.getPercentileRank(delayMillis / 1000.0));
         }
     }
 }
