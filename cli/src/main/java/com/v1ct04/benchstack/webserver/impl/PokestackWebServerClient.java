@@ -64,7 +64,15 @@ public class PokestackWebServerClient implements WebServerClient {
 
     @Override
     public ListenableFuture doReadMedium() {
-        return mNearby.pokestops.clear().peek();
+        switch (mRandom.nextInt(3)) {
+            case 0:
+                return doGet("/api/nearby/" + mUserId + "/pokestop/closest", makeParam("count", 10));
+            case 1:
+                return doGet("/api/nearby/" + mUserId + "/pokestop");
+            case 2:
+                return doGet("/api/nearby/" + mUserId + "/stadium/closest", makeParam("count", 200));
+        }
+        throw new RuntimeException();
     }
 
     @Override
@@ -189,6 +197,10 @@ public class PokestackWebServerClient implements WebServerClient {
         });
     }
 
+    private static NameValuePair makeParam(String name, Object value) {
+        return new BasicNameValuePair(name, value.toString());
+    }
+
     private class NearbyElements {
         final BottomlessQueue<String> pokemons;
         final BottomlessQueue<String> pokestops;
@@ -213,8 +225,7 @@ public class PokestackWebServerClient implements WebServerClient {
             String path = String.format("/api/nearby/%s/%s/closest", userId, itemType);
 
             AsyncFunction<Integer, List<String>> supplier = (count) -> {
-                NameValuePair param = new BasicNameValuePair("count", Integer.toString(count));
-                return Futures.transform(doGet(path, param), (JSONObject data) -> {
+                return Futures.transform(doGet(path, makeParam("count", count)), (JSONObject data) -> {
                     if (data == null) return Collections.emptyList();
                     return StreamSupport.stream(data.getJSONArray(itemType).spliterator(), false)
                             .map(o -> (JSONObject) o)
