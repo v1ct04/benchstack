@@ -205,9 +205,12 @@ public class Benchmark {
         System.out.flush();
     }
 
-    private void setWorkerCount(int count) {
+    private void setWorkerCount(int count) throws InterruptedException {
         LOGGER.trace("Setting worker count to: {}", count);
-        mWorkersPool.setWorkerCount(count);
+        if (mWorkersPool.setWorkerCount(count) < 0) {
+            LOGGER.trace("Awaiting termination of stopped workers...");
+            mWorkersPool.awaitStoppedWorkersTermination();
+        }
         mPercentileCalculator.reset();
     }
 
