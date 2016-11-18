@@ -91,19 +91,18 @@ public class Benchmark {
     private void executeBenchmark() {
         mWorkersPool = new ConcurrentWorkersPool(this::workerFunction);
         try {
-            LOGGER.info("Starting Benchmark.");
+            logInfoAndStdOut("Starting Benchmark.");
+
             Range<Integer> searchLimits = execExponentialLoadStep(mConfig.getExponentialStepConfig());
-            LOGGER.info("Finished exponential step. Workers: {}", mWorkersPool.getWorkerCount());
 
             execBinarySearchStep(mConfig.getBinarySearchConfig(), searchLimits);
-            LOGGER.info("Finished binary search step. Workers: {}", mWorkersPool.getWorkerCount());
 
             execFineTuneStep(mConfig.getFineTuneConfig());
-            LOGGER.info("Finished fine tuning. Workers: {}", mWorkersPool.getWorkerCount());
 
             Statistics result = execCalculateStatsStep(mConfig.getStableStatsConfig());
             mResult.set(result);
-            LOGGER.info("Finished Benchmark.");
+
+            logInfoAndStdOut("Finished Benchmark.");
         } catch (InterruptedException e) {
             mResult.setException(e);
             LOGGER.warn("Benchmark interrupted.");
@@ -122,18 +121,20 @@ public class Benchmark {
         int lastWorkerCount = 1;
         setWorkerCount(config.getInitialWorkers());
 
-        LOGGER.info("Starting exponential step.");
+        logInfoAndStdOut("Starting exponential step.");
         while (isComplying(config)) {
             lastWorkerCount = mWorkersPool.getWorkerCount();
             setWorkerCount(config.getMultiplier() * lastWorkerCount);
         }
+        logInfoAndStdOut("Finished exponential step. Workers: %d", mWorkersPool.getWorkerCount());
+
         return Range.closed(lastWorkerCount, mWorkersPool.getWorkerCount());
     }
 
     private void execBinarySearchStep(BinarySearchStepConfig config, Range<Integer> limits) throws InterruptedException {
         int min = limits.lowerEndpoint(), max = limits.upperEndpoint();
+        logInfoAndStdOut("Starting binary search step between %d and %d", min, max);
 
-        LOGGER.info("Starting binary search step.");
         int threshold = config.getThreshold();
         while (max - min > threshold) {
             double currentOpsPerSec = mWorkersPool.getCurrentOperationsPerSec();
@@ -152,13 +153,15 @@ public class Benchmark {
             }
         }
         setWorkerCount(min);
+        logInfoAndStdOut("Finished binary search step. Final workers: %d", min);
     }
 
     private void execFineTuneStep(FineTuneStepConfig config) throws InterruptedException {
-        LOGGER.trace("Starting fine tune step.");
+        logInfoAndStdOut("Starting fine tune step.");
+
         int step = 2 * config.getInitialStep();
         while (!isComplying(config)) {
-            LOGGER.trace("Fine tuning down with double step: {}", step);
+            LOGGER.debug("Fine tuning down with double step: {}", step);
             setWorkerCount(Math.max(mWorkersPool.getWorkerCount() - step, 0));
         }
 
@@ -167,16 +170,17 @@ public class Benchmark {
             int complyingCount;
             do {
                 complyingCount = mWorkersPool.getWorkerCount();
-                LOGGER.trace("Fine tuning up with step: {}", step);
+                LOGGER.debug("Fine tuning up with step: {}", step);
                 setWorkerCount(complyingCount + step);
             } while (isComplying(config));
 
             setWorkerCount(complyingCount);
         }
+        logInfoAndStdOut("Finished fine tuning. Workers: %d", mWorkersPool.getWorkerCount());
     }
 
     private Statistics execCalculateStatsStep(StableStatsStepConfig config) throws InterruptedException {
-        LOGGER.trace("Calculating stable statistics for worker count: {}", mWorkersPool.getWorkerCount());
+        logInfoAndStdOut("Calculating stable statistics for worker count: %d", mWorkersPool.getWorkerCount());
 
         mStatsCalculator = Statistics.calculator();
         waitReportingStatus(config.getWaitTimeMin(), TimeUnit.MINUTES);
@@ -199,21 +203,11 @@ public class Benchmark {
         } while (true);
     }
 
-    /**
-     * Uses ANSI codes to move back the cursor n lines and clear the console from that point.
-     */
-    private static void moveBackLines(int nLines) {
-        String ESC = "\033[";
-        System.out.print(ESC + nLines + "F" + // move back n lines
-                         ESC + "1G" +         // move caret to start of line
-                         ESC + "0J");         // clear screen from cursor forward
-        System.out.flush();
-    }
-
     private void setWorkerCount(int count) throws InterruptedException {
-        LOGGER.trace("Setting worker count to: {}", count);
-        if (mWorkersPool.setWorkerCount(count) < 0) {
-            LOGGER.trace("Awaiting termination of stopped workers...");
+        LOGGER.debug("Setting worker count to: {}", count);
+        int added = mWorkersPool.setWorkerCount(count);
+        if (added < 0) {
+            LOGGER.debug("Awaiting termination of stopped workers...");
             mWorkersPool.awaitStoppedWorkersTermination();
         }
         mPercentileCalculator.reset();
@@ -245,11 +239,30 @@ public class Benchmark {
             LOGGER.trace("Compliance test: Elms: {} Average: {} StdDev: {}", percentiles, avg, stdDev);
 
             if (avg - confidenceBand > percentileThreshold) {
+                LOGGER.trace("Complies!");
                 return true;
             } else if (avg + confidenceBand < percentileThreshold) {
+                LOGGER.trace("Doesn't comply!");
                 return false;
             }
             percentiles.removeFirst();
         } while (true);
+    }
+
+    private static void logInfoAndStdOut(String format, Object... args) {
+        String msg = String.format(format, args);
+        System.out.println(msg);
+        LOGGER.info(msg);
+    }
+
+    /**
+     * Uses ANSI codes to move back the cursor n lines and clear the console from that point.
+     */
+    private static void moveBackLines(int nLines) {
+        String ESC = "\033[";
+        System.out.print(ESC + nLines + "F" + // move back n lines
+                ESC + "1G" +         // move caret to start of line
+                ESC + "0J");         // clear screen from cursor forward
+        System.out.flush();
     }
 }
