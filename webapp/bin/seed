@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+
+const parseArgs = require('command-line-args'),
+    dbConfigGen = require('../lib/dbconfig'),
+         doSeed = require('../lib/seed')
+
+const numCPUs = require('os').cpus().length;
+
+const opts = parseArgs([
+  {
+    name: 'clear',
+    alias: 'C',
+    type: Boolean,
+    defaultValue: false
+  },
+  {
+    name: 'times',
+    alias: 'n',
+    type: parseInt,
+    defaultOption: true,
+    defaultValue: 10
+  },
+  {
+    name: 'concurrency',
+    alias: 'c',
+    type: parseInt,
+    defaultValue: 4 * numCPUs
+  }
+].concat(dbConfigGen.optionList))
+
+const dbConfig = dbConfigGen(opts)
+
+doSeed(dbConfig, opts.clear, opts.times, opts.concurrency)

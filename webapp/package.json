@@ -4,7 +4,7 @@
   "description": "A mock Pokemon RESTful service simulating a web app to be benchmarked.",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "node seed.js",
+    "seed": "node ./bin/seed",
     "start": "node ./bin/www"
   },
   "config": {

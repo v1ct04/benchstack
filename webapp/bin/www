@@ -4,7 +4,7 @@
  * Module dependencies.
  */
 var cluster = require('cluster');
-var app = require('../app');
+var app = require('../lib/app');
 var debug = require('debug')('pokestack:server');
 var http = require('http');
 

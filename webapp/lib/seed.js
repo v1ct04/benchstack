@@ -1,66 +1,39 @@
-#!/usr/bin/env node
-
-const async     = require('async'),
-      mongoSeed = require('mongo-seed'),
-      path      = require('path'),
-      parseArgs = require('command-line-args'),
-      monk      = require('monk')
-const dbConfig  = require('./dbconfig')
+const async = require('async'),
+  mongoSeed = require('mongo-seed'),
+       path = require('path'),
+       monk = require('monk')
 
 const seedPath = path.join(__dirname, "seed/seed-function.js")
 
-const opts = parseArgs([
-  {
-    name: 'clear',
-    alias: 'C',
-    type: Boolean,
-    defaultValue: false
-  },
-  {
-    name: 'times',
-    alias: 'n',
-    type: parseInt,
-    defaultOption: true,
-    defaultValue: 10
-  },
-  {
-    name: 'concurrency',
-    alias: 'c',
-    type: parseInt,
-    defaultValue: require('os').cpus().length * 4
-  }
-].concat(dbConfig.optionList));
+function doSeed(dbConfig, doClear, seedTimes, concurrency) {
+  let seededCount = 0
+  async.series([
+      function (next) {
+        if (!doClear) {
+          return next()
+        }
+        console.log("Clearing database.")
+        mongoSeed.clear(dbConfig.host, dbConfig.port, dbConfig.db, next)
+      },
+      function (next) {
+        console.log(`Starting seed, seed times: ${seedTimes}`)
 
-const config = dbConfig(opts)
-
-async.waterfall([
-    function (next) {
-      if (!opts.clear) {
-        return next()
+        async.timesLimit(
+            seedTimes,
+            concurrency,
+            function(n, done) {
+              console.log(`Seeding, iteration ${n + 1}.`)
+              mongoSeed.load(dbConfig.host, dbConfig.port, dbConfig.db, seedPath, "function",
+                  function(err) {
+                    if (!err) seededCount++
+                    done(err)
+                  })
+            }, next)
       }
-      console.log("Clearing database.")
-      mongoSeed.clear(config.host, config.port, config.db, next)
-    },
-    function (next) {
-      console.log(`Starting seed, scale factor: ${opts.times}`)
+    ], (err) => afterSeed(dbConfig, seededCount, err))
+}
 
-      let seedCount = 0
-      async.timesLimit(
-          opts.times,
-          opts.concurrency,
-          function(n, done) {
-            console.log(`Seeding, iteration ${n + 1}.`)
-            mongoSeed.load(config.host, config.port, config.db, seedPath, "function",
-                function(err) {
-                  if (!err) seedCount++
-                  done(err)
-                })
-          },
-          (err) => next(err, seedCount))
-    }
-  ], afterSeed)
-
-function afterSeed(err, seedCount) {
+function afterSeed(dbConfig, seededCount, err) {
   if (err) {
     console.log(`Failed seed with error: ${err}`)
     console.trace(err)
@@ -68,7 +41,7 @@ function afterSeed(err, seedCount) {
     console.log("Completed seeding database successfully!")
   }
 
-  const db = monk(config.getDbUrl())
+  const db = monk(dbConfig.getDbUrl())
   const metadata = db.get('metadata')
 
   var scaleFactor = null
@@ -78,7 +51,7 @@ function afterSeed(err, seedCount) {
       },
       function(obj, next) {
         obj = obj || {scaleFactor: 0}
-        scaleFactor = obj.scaleFactor + seedCount
+        scaleFactor = obj.scaleFactor + seededCount
         metadata.update({}, {scaleFactor: scaleFactor}, {upsert: true}, next)
       },
       function(result, next) {
@@ -100,7 +73,7 @@ function afterSeed(err, seedCount) {
 }
 
 function createIndexes(db, done) {
-  console.log("Indexing...")
+  console.log("Creating indexes...")
   async.series([
     next => db.get('pokemon').index({loc: "2dsphere"}, next),
     next => db.get('pokemon').index({loc: "2dsphere", ownerId: 1, stadiumId: 1}, next),
@@ -112,3 +85,5 @@ function createIndexes(db, done) {
     next => db.get('user').index({workerNum: 1}, {unique: true}, next)
   ], done)
 }
+
+module.exports = doSeed
