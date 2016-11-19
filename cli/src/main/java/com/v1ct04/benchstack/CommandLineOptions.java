@@ -45,7 +45,6 @@ public class CommandLineOptions {
                     .hasArg()
                     .argName("file")
                     .desc("File with configuration for benchmark in Protocol Buffers text format.")
-                    .required()
                     .build())
             .addOption(Option.builder("H")
                     .longOpt("host")
@@ -116,7 +115,9 @@ public class CommandLineOptions {
 
     private static BenchmarkConfig parseConfig(String filename) throws IOException {
         BenchmarkConfig.Builder config = BenchmarkConfig.newBuilder();
-        TextFormat.merge(new FileReader(filename), config);
+        if (filename != null) {
+            TextFormat.merge(new FileReader(filename), config);
+        }
         return config.build();
     }
 

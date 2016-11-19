@@ -9,23 +9,23 @@ message BenchmarkConfig {
     optional double complianceTestConfidenceWidth = 4 [default = 2];
 
     message ExponentialStepConfig {
-        optional int64 baseWaitTimeSec = 1 [default = 15];
+        optional int64 baseWaitTimeSec = 1 [default = 10];
         optional int32 initialWorkers = 2 [default = 10];
-        optional int32 multiplier = 3 [default = 5];
+        optional int32 multiplier = 3 [default = 4];
     }
 
     message BinarySearchStepConfig {
-        optional int64 baseWaitTimeSec = 1 [default = 30];
+        optional int64 baseWaitTimeSec = 1 [default = 15];
         optional int32 threshold = 2 [default = 5];
     }
 
     message FineTuneStepConfig {
-        optional int64 baseWaitTimeSec = 1 [default = 30];
+        optional int64 baseWaitTimeSec = 1 [default = 20];
         optional int32 initialStep = 2 [default = 10];
     }
 
     message StableStatsStepConfig {
-        optional int64 waitTimeMin = 1 [default = 60];
+        optional int64 waitTimeMin = 1 [default = 10];
     }
 
     optional ExponentialStepConfig exponentialStepConfig = 5;
