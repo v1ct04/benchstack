@@ -33,10 +33,10 @@ public class ForwardingScheduledExecutorService extends AbstractListeningExecuto
         // haven't been sent to the delegated executor yet, spawn a
         // thread to wait for the scheduled executor to shutdown and only
         // then shutdown the delegated executor.
-        execAsync(() -> {
+        MoreFutures.execAsync(() -> {
             mScheduledExecutor.awaitTermination(1, TimeUnit.DAYS);
             mDelegatedExecutor.shutdown();
-        });
+        }, mThreadFactory);
     }
 
     @Override
@@ -106,13 +106,4 @@ public class ForwardingScheduledExecutorService extends AbstractListeningExecuto
                 .setFixedDelay(delay, unit)
                 .start(command);
     }
-
-    // Private Helpers
-
-    private Thread execAsync(ThrowingRunnable command) {
-        Thread t = mThreadFactory.newThread(ThrowingRunnable.propagating(command));
-        t.start();
-        return t;
-    }
-
 }

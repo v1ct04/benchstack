@@ -1,10 +1,8 @@
 package com.v1ct04.benchstack.driver;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
 import com.v1ct04.benchstack.concurrent.MoreFutures;
@@ -20,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Benchmark {
 
@@ -28,10 +27,9 @@ public class Benchmark {
     private final BenchmarkConfig mConfig;
     private final BenchmarkAction mAction;
     private final PercentileCalculator mPercentileCalculator;
+    private final AtomicBoolean mStarted = new AtomicBoolean(false);
 
-    private Thread mBenchmarkThread;
     private ConcurrentWorkersPool mWorkersPool;
-
     private volatile Statistics.Calculator mStatsCalculator;
 
     public Benchmark(BenchmarkConfig config, BenchmarkAction action) {
@@ -68,37 +66,10 @@ public class Benchmark {
     }
 
     public ListenableFuture<Statistics> start() {
-        if (mBenchmarkThread != null) {
+        if (mStarted.getAndSet(true)) {
             throw new IllegalStateException("Benchmark already started");
         }
-        return executeBenchmarkAsync();
-    }
-
-    public void stop() {
-        if (mBenchmarkThread == null) {
-            throw new IllegalStateException("Must have started benchmark to call stop");
-        }
-        mBenchmarkThread.interrupt();
-    }
-
-    private ListenableFuture<Statistics> executeBenchmarkAsync() {
-        SettableFuture<Statistics> result = SettableFuture.create();
-
-        mBenchmarkThread = Executors.defaultThreadFactory().newThread(() -> {
-           try {
-               result.set(executeBenchmark());
-           } catch (InterruptedException e) {
-               result.setException(e);
-               LOGGER.warn("Benchmark interrupted.");
-           } catch (Throwable t) {
-               result.setException(t);
-               LOGGER.error("Benchmark failed with exception: {}", t);
-               Throwables.propagate(t);
-           }
-        });
-        mBenchmarkThread.start();
-
-        return result;
+        return MoreFutures.execAsync(this::executeBenchmark);
     }
 
     private Statistics executeBenchmark() throws InterruptedException {
@@ -127,6 +98,12 @@ public class Benchmark {
             Statistics stats = execCalculateStatsStep(mConfig.getStableStatsConfig());
             printFinalResults(stats);
             return stats;
+        } catch (InterruptedException e) {
+            logInfoAndStdOut("Benchmark interrupted.");
+            throw e;
+        } catch (Throwable t) {
+            LOGGER.error("Benchmark failed with exception: {}", t);
+            throw t;
         } finally {
             mWorkersPool.shutdown();
             mWorkersPool = null;
