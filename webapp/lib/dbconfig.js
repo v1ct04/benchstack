@@ -6,7 +6,7 @@ const optionList = [
   },
   {
     name: 'dbPort',
-    alias: 'p',
+    alias: 'd',
     type: parseInt
   }
 ];

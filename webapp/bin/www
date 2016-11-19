@@ -1,23 +1,42 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
-var cluster = require('cluster');
-var app = require('../lib/app');
-var debug = require('debug')('pokestack:server');
-var http = require('http');
-
-/**
- * Get port from environment and store in Express.
- */
-
-var port = normalizePort(process.env.PORT || '3000');
-app.set('port', port);
+const cluster = require('cluster'),
+    parseArgs = require('command-line-args'),
+         http = require('http'),
+  dbConfigGen = require('../lib/dbconfig'),
+    createApp = require('../lib/app')
 
 const numCPUs = require('os').cpus().length;
 
-if (cluster.isMaster) {
+const opts = parseArgs([
+  {
+    name: 'single',
+    alias: 's',
+    type: Boolean
+  },
+  {
+    name: 'port',
+    alias: 'p',
+    type: parseInt
+  },
+  {
+    name: 'log',
+    alias: 'l',
+    type: Boolean
+  },
+  {
+    name: 'logFormat',
+    alias: 'f',
+    type: String,
+    defaultValue: 'dev'
+  }
+].concat(dbConfigGen.optionList))
+
+const dbConfig = dbConfigGen(opts)
+const port = opts.port || normalizePort(process.env.npm_package_config_port) || 3000
+const logFormat = opts.log && opts.logFormat
+
+if (cluster.isMaster && !opts.single) {
   // Fork workers.
   for (var i = 0; i < numCPUs; i++) {
     cluster.fork();
@@ -27,14 +46,13 @@ if (cluster.isMaster) {
     console.log(`worker ${worker.process.pid} died`);
   });
 } else {
-  /**
-   * Create HTTP server.
-   */
+  startServer()
+}
+
+function startServer() {
+  var app = createApp(dbConfig, port, logFormat);
   var server = http.createServer(app);
 
-  /**
-   * Listen on provided port, on all network interfaces.
-   */
   server.listen(port);
   server.on('error', onError);
   server.on('listening', onListening);
@@ -43,7 +61,6 @@ if (cluster.isMaster) {
 /**
  * Normalize a port into a number, string, or false.
  */
-
 function normalizePort(val) {
   var port = parseInt(val, 10);
 
@@ -59,10 +76,6 @@ function normalizePort(val) {
 
   return false;
 }
-
-/**
- * Event listener for HTTP server "error" event.
- */
 
 function onError(error) {
   if (error.syscall !== 'listen') {
@@ -88,14 +101,10 @@ function onError(error) {
   }
 }
 
-/**
- * Event listener for HTTP server "listening" event.
- */
-
 function onListening() {
-  var addr = server.address();
+  var addr = this.address();
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  console.log('Listening on ' + bind);
 }
