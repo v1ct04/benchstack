@@ -100,6 +100,7 @@ function afterSeed(err, seedCount) {
 }
 
 function createIndexes(db, done) {
+  console.log("Indexing...")
   async.series([
     next => db.get('pokemon').index({loc: "2dsphere"}, next),
     next => db.get('pokemon').index({loc: "2dsphere", ownerId: 1, stadiumId: 1}, next),
