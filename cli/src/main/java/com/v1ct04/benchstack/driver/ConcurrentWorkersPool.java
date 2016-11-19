@@ -3,6 +3,7 @@ package com.v1ct04.benchstack.driver;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.v1ct04.benchstack.concurrent.ForwardingScheduledExecutorService;
 import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.concurrent.ReschedulingTask;
@@ -17,6 +18,8 @@ import java.util.function.LongSupplier;
 
 class ConcurrentWorkersPool {
 
+    private static final AtomicInteger sPoolNumber = new AtomicInteger(0);
+
     private final IntConsumer mWorkerFunction;
     private final ThreadPoolExecutor mThreadPoolExecutor;
     private final ScheduledExecutorService mExecutor;
@@ -29,8 +32,12 @@ class ConcurrentWorkersPool {
     private final Signaler mTasksResetter = new Signaler();
 
     public ConcurrentWorkersPool(IntConsumer workerFunction) {
-        mThreadPoolExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 5, TimeUnit.SECONDS, new SynchronousQueue<>());
-        mExecutor = new ForwardingScheduledExecutorService(mThreadPoolExecutor);
+        ThreadFactory tf = new ThreadFactoryBuilder()
+                .setNameFormat(String.format("workers-pool-%d-thread-%%d", sPoolNumber.getAndIncrement()))
+                .setDaemon(true)
+                .build();
+        mThreadPoolExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 5, TimeUnit.SECONDS, new SynchronousQueue<>(), tf);
+        mExecutor = new ForwardingScheduledExecutorService(mThreadPoolExecutor, tf);
         mWorkerFunction = workerFunction;
     }
 

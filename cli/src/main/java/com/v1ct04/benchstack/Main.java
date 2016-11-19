@@ -1,7 +1,6 @@
 package com.v1ct04.benchstack;
 
 import com.google.common.base.Stopwatch;
-import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.driver.Benchmark;
 import com.v1ct04.benchstack.driver.BenchmarkAction;
 import com.v1ct04.benchstack.webserver.RestfulHttpClient;
@@ -27,7 +26,7 @@ public class Main {
 
             Stopwatch stopwatch = Stopwatch.createStarted();
             System.out.println("Starting benchmark at: " + new Date());
-            MoreFutures.awaitTermination(bench.start());
+            bench.start().get();
             System.out.println("Benchmark finished at: " + new Date());
             System.out.format("Elapsed time: %.2f minutes\n", stopwatch.elapsed(TimeUnit.SECONDS) / 60.0);
         }
