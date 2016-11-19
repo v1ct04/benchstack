@@ -34,7 +34,7 @@ public class ForwardingScheduledExecutorService extends AbstractListeningExecuto
         // thread to wait for the scheduled executor to shutdown and only
         // then shutdown the delegated executor.
         MoreFutures.execAsync(() -> {
-            mScheduledExecutor.awaitTermination(1, TimeUnit.DAYS);
+            Interruptibles.untilSuccess(() -> mScheduledExecutor.awaitTermination(1, TimeUnit.DAYS));
             mDelegatedExecutor.shutdown();
         }, mThreadFactory);
     }
@@ -47,10 +47,8 @@ public class ForwardingScheduledExecutorService extends AbstractListeningExecuto
         // tasks will be waited for. Since the scheduled executor tasks
         // are always quick, we can afford waiting for them to finish
         // with no surprises.
-        ThrowingRunnable.runPropagating(() -> {
-            mScheduledExecutor.awaitTermination(1, TimeUnit.DAYS);
-            r.addAll(mDelegatedExecutor.shutdownNow());
-        });
+        Interruptibles.untilSuccess(() -> mScheduledExecutor.awaitTermination(1, TimeUnit.DAYS));
+        r.addAll(mDelegatedExecutor.shutdownNow());
         return r;
     }
 
@@ -66,12 +64,9 @@ public class ForwardingScheduledExecutorService extends AbstractListeningExecuto
 
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-        long startTime = System.nanoTime();
-        if (!mScheduledExecutor.awaitTermination(timeout, unit)) {
-            return false;
-        }
-        long remaining = unit.toNanos(timeout) - (System.nanoTime() - startTime);
-        return mDelegatedExecutor.awaitTermination(remaining, TimeUnit.NANOSECONDS);
+        TimeCondition end = TimeCondition.untilAfter(timeout, unit);
+        return mScheduledExecutor.awaitTermination(end.nanoTimeLeft(), TimeUnit.NANOSECONDS) &&
+                mDelegatedExecutor.awaitTermination(end.nanoTimeLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override

@@ -57,7 +57,7 @@ public abstract class MoreFutures {
         return result;
     }
 
-    public static ListenableFuture<Void> execAsync(ThrowingRunnable command) {
+    public static ListenableFuture<Void> execAsync(Runnable command) {
         return execAsync(command, Thread::new);
     }
 
@@ -65,7 +65,7 @@ public abstract class MoreFutures {
         return execAsync(callable, Thread::new);
     }
 
-    public static ListenableFuture<Void> execAsync(ThrowingRunnable command, ThreadFactory factory) {
+    public static ListenableFuture<Void> execAsync(Runnable command, ThreadFactory factory) {
         return execAsync(() -> {command.run(); return null;}, factory);
     }
 

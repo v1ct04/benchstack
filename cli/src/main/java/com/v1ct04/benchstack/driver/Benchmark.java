@@ -5,6 +5,7 @@ import com.google.common.collect.Range;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
+import com.v1ct04.benchstack.concurrent.Interruptibles;
 import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.concurrent.TimeCondition;
 import com.v1ct04.benchstack.driver.BenchmarkConfigWrapper.BenchmarkConfig;
@@ -106,7 +107,9 @@ public class Benchmark {
             throw t;
         } finally {
             mWorkersPool.shutdown();
+            Interruptibles.uninterruptibly(mWorkersPool::awaitTermination);
             mWorkersPool = null;
+
             logInfoAndStdOut("Finished Benchmark.");
         }
     }

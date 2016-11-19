@@ -1,7 +1,6 @@
 package com.v1ct04.benchstack.driver;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.v1ct04.benchstack.concurrent.ForwardingScheduledExecutorService;
@@ -9,12 +8,9 @@ import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.concurrent.ReschedulingTask;
 import com.v1ct04.benchstack.concurrent.Signaler;
 
-import java.util.List;
+import java.util.Queue;
 import java.util.Stack;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntConsumer;
 import java.util.function.LongSupplier;
@@ -26,7 +22,7 @@ class ConcurrentWorkersPool {
     private final ScheduledExecutorService mExecutor;
 
     private final Stack<ReschedulingTask> mWorkers = new Stack<>();
-    private volatile List<ReschedulingTask> mStoppedWorkers = Lists.newLinkedList();
+    private final Queue<ReschedulingTask> mStoppedWorkers = new ConcurrentLinkedQueue<>();
 
     private final Stopwatch mSinceLastChange = Stopwatch.createUnstarted();
     private final AtomicInteger mOperationCount = new AtomicInteger(0);
@@ -50,7 +46,12 @@ class ConcurrentWorkersPool {
 
     public void shutdown() {
         setWorkerCount(0);
-        mExecutor.shutdown();
+        mExecutor.shutdownNow();
+    }
+
+    public void awaitTermination() throws InterruptedException {
+        awaitStoppedWorkersTermination();
+        while (!mExecutor.awaitTermination(1, TimeUnit.DAYS));
     }
 
     public synchronized int getWorkerCount() {
@@ -79,21 +80,16 @@ class ConcurrentWorkersPool {
         while (count > 0) {
             ReschedulingTask worker = mWorkers.pop();
             worker.cancel(false);
-            mStoppedWorkers.add(worker);
+            mStoppedWorkers.offer(worker);
             count--;
         }
     }
 
     public void awaitStoppedWorkersTermination() throws InterruptedException {
-        // avoid awaiting in a synchronized context
-        List<ReschedulingTask> toAwait;
-        synchronized (this) {
-            toAwait = mStoppedWorkers;
-            mStoppedWorkers = Lists.newLinkedList();
-        }
-
-        for (ReschedulingTask task : toAwait) {
-            task.awaitTerminationInterruptibly();
+        ReschedulingTask stopped = mStoppedWorkers.poll();
+        while (stopped != null) {
+            stopped.awaitTermination();
+            stopped = mStoppedWorkers.poll();
         }
     }
 

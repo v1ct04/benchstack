@@ -31,19 +31,7 @@ public class TimeCondition implements Condition {
 
     @Override
     public void awaitUninterruptibly() {
-        synchronized (this) {
-            boolean interrupted = false;
-            while(!isFulfilled()) {
-                try {
-                    TimeUnit.NANOSECONDS.timedWait(this, nanoTimeLeft());
-                } catch (InterruptedException ignored) {
-                    interrupted = true;
-                }
-            }
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
-        }
+        Interruptibles.uninterruptibly(this::await);
     }
 
     @Override
@@ -93,7 +81,7 @@ public class TimeCondition implements Condition {
         return unit.convert(nanoTimeLeft(), TimeUnit.NANOSECONDS);
     }
 
-    private long nanoTimeLeft() {
+    public long nanoTimeLeft() {
         return mEndNanoTime - System.nanoTime();
     }
 
