@@ -178,7 +178,7 @@ public class Benchmark {
 
         double score = complianceScore(config);
         if (score < 0) {
-            int tuneDownStep = (int) Math.min(Math.round(-score), 2 * config.getInitialStep());
+            int tuneDownStep = 2 * (int) Math.min(Math.round(-score), config.getInitialStep());
             do {
                 LOGGER.debug("Fine tuning down with step: {}", tuneDownStep);
                 setWorkerCount(Math.max(mWorkersPool.getWorkerCount() - tuneDownStep, 0));
