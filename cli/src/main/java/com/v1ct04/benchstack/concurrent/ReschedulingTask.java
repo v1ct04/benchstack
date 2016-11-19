@@ -119,12 +119,12 @@ public final class ReschedulingTask
             setException(t);
             throw Throwables.propagate(t);
         } finally {
-            // We can't reschedule in the registered state otherwise it's possible
-            // that the Phaser never advances phase, when the next execution
-            // starts and registers itself before this one arrives and de-registers.
             mExecutionPhaser.arriveAndDeregister();
-            reschedule();
         }
+        // We can't reschedule in the registered state otherwise it's possible
+        // that the Phaser never advances phase, when the next execution
+        // starts and registers itself before this one arrives and de-registers.
+        reschedule();
     }
 
     private void reschedule() {
