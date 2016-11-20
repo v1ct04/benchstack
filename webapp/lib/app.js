@@ -47,6 +47,7 @@ function createApp(dbConfig, port, logFormat) {
     console.error(err)
     res.json({success: 0, err: err.toString()})
   })
+  return app;
 }
 
 module.exports = createApp;
