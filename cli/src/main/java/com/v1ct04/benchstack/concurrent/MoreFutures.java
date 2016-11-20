@@ -3,38 +3,60 @@ package com.v1ct04.benchstack.concurrent;
 import com.google.common.util.concurrent.*;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public abstract class MoreFutures {
     private MoreFutures() {}
 
-    public static <V> ListenableFuture<V> consume(ListenableFuture<V> future, BiConsumer<? super V, Throwable> consumer) {
+    /**
+     * Consumes the given future, guaranteeing that the resulting future will be
+     * created and provided to {@code preConsumer} before this function returns
+     * and before the actual result {@code consumer} is executed. The resulting
+     * future is also returned for convenience.
+     */
+    public static <V> ListenableFuture<V> lateConsume(ListenableFuture<V> future,
+                                                      Consumer<ListenableFuture<V>> preConsumer,
+                                                      BiConsumer<? super V, Throwable> consumer) {
+        CancelListenableFuture<V> result = new CancelListenableFuture<>(future::cancel);
+        preConsumer.accept(result);
+
         Futures.addCallback(future, new FutureCallback<V>() {
             @Override
             public void onSuccess(V v) {
-                consumer.accept(v, null);
+                try {
+                    consumer.accept(v, null);
+                    result.set(v);
+                } catch (Throwable t) {
+                    result.setException(t);
+                }
             }
 
             @Override
             public void onFailure(Throwable t) {
-                consumer.accept(null, t);
+                try {
+                    consumer.accept(null, t);
+                } finally {
+                    result.setException(t);
+                }
             }
         });
-        return future;
+        return result;
+    }
+
+    public static <V> ListenableFuture<V> consume(ListenableFuture<V> future,
+                                                  BiConsumer<? super V, Throwable> consumer) {
+        return lateConsume(future, f -> {}, consumer);
     }
 
     public static <V> ListenableFuture<V> consume(ListenableFuture<V> future, Consumer<? super V> consumer) {
-        Futures.addCallback(future, new FutureCallback<V>() {
-            @Override
-            public void onSuccess(V result) {
-                consumer.accept(result);
-            }
+        return consume(future, (r, t) -> {if (t == null) consumer.accept(r);});
+    }
 
-            @Override
-            public void onFailure(Throwable t) {}
-        });
-        return future;
+    public static <V> ListenableFuture<V> setWhileOngoing(ListenableFuture<V> future,
+                                                          AtomicReference<ListenableFuture<V>> reference) {
+        return lateConsume(future, reference::set, (r, e) -> reference.set(null));
     }
 
     public static <V> ListenableScheduledFuture<V> dereference(ListenableScheduledFuture<? extends ListenableFuture<? extends V>> future) {
@@ -55,6 +77,14 @@ public abstract class MoreFutures {
             }
         });
         return result;
+    }
+
+    public static <V> ListenableFuture<V> resultOf(Callable<ListenableFuture<V>> callable) {
+        try {
+            return callable.call();
+        } catch (Throwable t) {
+            return Futures.immediateFailedFuture(t);
+        }
     }
 
     public static ListenableFuture<Void> execAsync(Runnable command) {
