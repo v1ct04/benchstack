@@ -3,27 +3,27 @@ package com.v1ct04.benchstack.webserver;
 import com.google.common.util.concurrent.ListenableFuture;
 
 public interface WebServerClient {
-    ListenableFuture doReadLite();
+    ListenableFuture<?> doReadLite();
 
-    ListenableFuture doReadMedium();
+    ListenableFuture<?> doReadMedium();
 
-    ListenableFuture doReadHeavy();
+    ListenableFuture<?> doReadHeavy();
 
-    ListenableFuture doUpdateLite();
+    ListenableFuture<?> doUpdateLite();
 
-    ListenableFuture doUpdateMedium();
+    ListenableFuture<?> doUpdateMedium();
 
-    ListenableFuture doUpdateHeavy();
+    ListenableFuture<?> doUpdateHeavy();
 
-    ListenableFuture doInsertLite();
+    ListenableFuture<?> doInsertLite();
 
-    ListenableFuture doInsertHeavy();
+    ListenableFuture<?> doInsertHeavy();
 
-    ListenableFuture doDeleteLite();
+    ListenableFuture<?> doDeleteLite();
 
-    ListenableFuture doDeleteHeavy();
+    ListenableFuture<?> doDeleteHeavy();
 
-    ListenableFuture doCPULite();
+    ListenableFuture<?> doCPULite();
 
-    ListenableFuture doCPUHeavy();
+    ListenableFuture<?> doCPUHeavy();
 }

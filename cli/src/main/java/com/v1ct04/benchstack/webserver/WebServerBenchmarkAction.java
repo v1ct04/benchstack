@@ -1,12 +1,12 @@
 package com.v1ct04.benchstack.webserver;
 
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.v1ct04.benchstack.concurrent.MoreFutures;
 import com.v1ct04.benchstack.driver.BenchmarkAction;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class WebServerBenchmarkAction implements BenchmarkAction {
 
@@ -16,7 +16,7 @@ public class WebServerBenchmarkAction implements BenchmarkAction {
     private final Map<Integer, WebServerClient> mClients = new ConcurrentHashMap<>();
 
     // TODO: Make this configurable
-    private Arbitrator<AsyncFunction<WebServerClient, ?>> mArbitrator = new Arbitrator<>();
+    private Arbitrator<Function<WebServerClient, ListenableFuture<?>>> mArbitrator = new Arbitrator<>();
     {
         mArbitrator
                 .addFunction(35, WebServerClient::doReadLite)

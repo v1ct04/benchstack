@@ -23,7 +23,7 @@ version = '1.0'
 mainClassName = "com.v1ct04.benchstack.Main"
 
 compileJava {
-    options.compilerArgs << '-Xlint:unchecked'
+    options.compilerArgs << '-Xlint:all'
 }
 
 dependencies {

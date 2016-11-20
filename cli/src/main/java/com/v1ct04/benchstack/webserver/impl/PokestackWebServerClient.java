@@ -49,7 +49,7 @@ public class PokestackWebServerClient implements WebServerClient {
     // Benchmark Actions
 
     @Override
-    public ListenableFuture doReadLite() {
+    public ListenableFuture<?> doReadLite() {
         switch (mRandom.nextInt(2)) {
             case 0:
                 return doGet("/api/user/" + mUserId);
@@ -63,7 +63,7 @@ public class PokestackWebServerClient implements WebServerClient {
     }
 
     @Override
-    public ListenableFuture doReadMedium() {
+    public ListenableFuture<?> doReadMedium() {
         switch (mRandom.nextInt(3)) {
             case 0:
                 return doGet("/api/nearby/" + mUserId + "/pokestop/closest", makeParam("count", 10));
@@ -76,7 +76,7 @@ public class PokestackWebServerClient implements WebServerClient {
     }
 
     @Override
-    public ListenableFuture doReadHeavy() {
+    public ListenableFuture<?> doReadHeavy() {
         switch (mRandom.nextInt(4)) {
             case 0:
                 return mNearby.pokemons.clear().peek();
@@ -91,7 +91,7 @@ public class PokestackWebServerClient implements WebServerClient {
     }
 
     @Override
-    public ListenableFuture doUpdateLite() {
+    public ListenableFuture<?> doUpdateLite() {
         switch (mRandom.nextInt(2)) {
             case 0:
                 return mNearby.pokestops.pollTransform(
@@ -103,7 +103,7 @@ public class PokestackWebServerClient implements WebServerClient {
     }
 
     @Override
-    public ListenableFuture doUpdateMedium() {
+    public ListenableFuture<?> doUpdateMedium() {
         if (mRandom.nextDouble() < 0.1) {
             return doReset();
         } else {
@@ -112,37 +112,37 @@ public class PokestackWebServerClient implements WebServerClient {
     }
 
     @Override
-    public ListenableFuture doUpdateHeavy() {
+    public ListenableFuture<?> doUpdateHeavy() {
         return doPost("/api/pokemon/levelUp", userIdCountBody(100));
     }
 
     @Override
-    public ListenableFuture doInsertLite() {
+    public ListenableFuture<?> doInsertLite() {
         return mNearby.pokestops.pollTransform(id -> doPost("/api/pokestop/" + id + "/lure", userIdCountBody(10)));
     }
 
     @Override
-    public ListenableFuture doInsertHeavy() {
+    public ListenableFuture<?> doInsertHeavy() {
         return mNearby.pokestops.pollTransform(id -> doPost("/api/pokestop/" + id + "/lure", userIdCountBody(200)));
     }
 
     @Override
-    public ListenableFuture doDeleteLite() {
+    public ListenableFuture<?> doDeleteLite() {
         return doPost("/api/pokemon/nuke", userIdCountBody(10));
     }
 
     @Override
-    public ListenableFuture doDeleteHeavy() {
+    public ListenableFuture<?> doDeleteHeavy() {
         return doPost("/api/pokemon/nuke", userIdCountBody(200));
     }
 
     @Override
-    public ListenableFuture doCPULite() {
+    public ListenableFuture<?> doCPULite() {
         return mNearby.pokemons.pollTransform(id -> doPost("/api/pokemon/" + id + "/capture", mUserIdBody));
     }
 
     @Override
-    public ListenableFuture doCPUHeavy() {
+    public ListenableFuture<?> doCPUHeavy() {
         switch (mRandom.nextInt(3)) {
             case 0:
                 return mNearby.pokemons.pollTransform(id -> doPost("/api/battle/pokemon/" + id, mUserIdBody));
@@ -156,7 +156,7 @@ public class PokestackWebServerClient implements WebServerClient {
 
     // Internal Requests
 
-    private ListenableFuture doReset() {
+    private ListenableFuture<?> doReset() {
         return MoreFutures.consume(
                 doPost("/api/user/" + mUserId + "/move", new JSONObject()),
                 r -> mNearby.clear());

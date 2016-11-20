@@ -1,6 +1,10 @@
 package com.v1ct04.benchstack.webserver;
 
-public class WebServerResponseException extends RuntimeException {
+import java.io.Serializable;
+
+public class WebServerResponseException extends RuntimeException implements Serializable {
+
+    private static final long serialVersionUID = 2582084478175289907L;
 
     public WebServerResponseException(String path, String error) {
         super(buildMessage(path, error));
