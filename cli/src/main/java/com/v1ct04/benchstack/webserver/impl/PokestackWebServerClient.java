@@ -1,6 +1,5 @@
 package com.v1ct04.benchstack.webserver.impl;
 
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.v1ct04.benchstack.concurrent.BottomlessQueue;
@@ -15,6 +14,7 @@ import org.json.JSONObject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -223,9 +223,10 @@ public class PokestackWebServerClient implements WebServerClient {
 
         private BottomlessQueue<String> nearbyItemsQueue(String userId, String itemType, int refillCount) {
             String path = String.format("/api/nearby/%s/%s/closest", userId, itemType);
+            NameValuePair countParam = makeParam("count", refillCount);
 
-            AsyncFunction<Integer, List<String>> supplier = (count) -> {
-                return Futures.transform(doGet(path, makeParam("count", count)), (JSONObject data) -> {
+            Callable<ListenableFuture<List<String>>> fetcher = () -> {
+                return Futures.transform(doGet(path, countParam), (JSONObject data) -> {
                     if (data == null) return Collections.emptyList();
                     return StreamSupport.stream(data.getJSONArray(itemType).spliterator(), false)
                             .map(o -> (JSONObject) o)
@@ -233,7 +234,7 @@ public class PokestackWebServerClient implements WebServerClient {
                             .collect(Collectors.toList());
                 });
             };
-            return new BottomlessQueue<>(supplier, refillCount);
+            return new BottomlessQueue<>(fetcher);
         }
     }
 }

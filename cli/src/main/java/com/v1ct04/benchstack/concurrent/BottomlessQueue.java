@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class BottomlessQueue<Type> {
@@ -13,14 +14,10 @@ public class BottomlessQueue<Type> {
     private final Queue<Type> mItems;
     private final SingleAsyncPerformer<List<Type>> mFetcher;
 
-    public BottomlessQueue(AsyncFunction<Integer, List<Type>> itemSupplier) {
-        this(itemSupplier, 10);
-    }
-
-    public BottomlessQueue(AsyncFunction<Integer, List<Type>> itemSupplier, int refillCount) {
+    public BottomlessQueue(Callable<ListenableFuture<List<Type>>> fetchOperation) {
         mItems = new ConcurrentLinkedQueue<>();
         mFetcher =
-                SingleAsyncPerformer.doing(() -> itemSupplier.apply(refillCount))
+                SingleAsyncPerformer.doing(fetchOperation)
                         .onlyWhen(mItems::isEmpty)
                         .supplyingTo(mItems::addAll)
                         .build();
