@@ -35,12 +35,12 @@
     "pokemon": "https://github.com/v1ct04/pokemon/tarball/master",
     "pokemon-base-stats": "https://github.com/v1ct04/pokemon-base-stats/tarball/master",
     "pokemon-stat-calculator": "^0.1.0",
-    "randgen": "^0.1.0"
+    "randgen": "^0.1.0",
+    "command-line-args": "^3.0.2",
+    "wordo": "0.0.2"
   },
   "devDependencies": {
-    "command-line-args": "^3.0.2",
-    "mongo-seed": "https://github.com/v1ct04/mongo-seed/tarball/master",
-    "wordo": "0.0.2"
+    "mongo-seed": "https://github.com/v1ct04/mongo-seed/tarball/master"
   },
   "engines": {
     "node": ">=6.0.0"
