@@ -32,12 +32,19 @@ class ConcurrentWorkersPool {
     private final Signaler mTasksResetter = new Signaler();
 
     public ConcurrentWorkersPool(IntConsumer workerFunction) {
-        ThreadFactory tf = new ThreadFactoryBuilder()
-                .setNameFormat(String.format("workers-pool-%d-thread-%%d", sPoolNumber.getAndIncrement()))
+        String threadNameFormat = String.format(
+                "workers-pool-%d-thread-%%d", sPoolNumber.getAndIncrement());
+        ThreadFactory threadFactory = new ThreadFactoryBuilder()
+                .setNameFormat(threadNameFormat)
                 .setDaemon(true)
                 .build();
-        mThreadPoolExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 5, TimeUnit.SECONDS, new SynchronousQueue<>(), tf);
-        mExecutor = new ForwardingScheduledExecutorService(mThreadPoolExecutor, tf);
+
+        mThreadPoolExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE,
+                                                     30, TimeUnit.SECONDS,
+                                                     new SynchronousQueue<>(),
+                                                     threadFactory);
+        mExecutor = new ForwardingScheduledExecutorService(mThreadPoolExecutor,
+                                                           threadFactory);
         mWorkerFunction = workerFunction;
     }
 
