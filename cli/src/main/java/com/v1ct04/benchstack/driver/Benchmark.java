@@ -82,19 +82,19 @@ public class Benchmark {
 
             execBinarySearchStep(mConfig.getBinarySearchConfig(), searchLimits);
 
-            do {
-                double score = execFineTuneStep(mConfig.getFineTuneConfig());
+            double score = execFineTuneStep(mConfig.getFineTuneConfig());
 
-                if (score > 0) {
-                    break;
-                } else if (score < -2 * mConfig.getFineTuneConfig().getInitialStep()) {
+            while (score < 0) {
+                if (score < -2 * mConfig.getFineTuneConfig().getMaxInitialStep()) {
                     logInfoAndStdOut("Unexpectedly bad result from fine tune, doing binary search again.");
                     searchLimits = searchLimits.intersection(Range.atMost(mWorkersPool.getWorkerCount()));
                     execBinarySearchStep(mConfig.getBinarySearchConfig(), searchLimits);
                 } else {
                     logInfoAndStdOut("Fine tune result uncompliant, will try again.");
                 }
-            } while (true);
+
+                score = execFineTuneStep(mConfig.getFineTuneConfig(), score);
+            }
 
             Statistics stats = execCalculateStatsStep(mConfig.getStableStatsConfig());
             printFinalResults(stats);
@@ -154,19 +154,25 @@ public class Benchmark {
     }
 
     private double execFineTuneStep(FineTuneStepConfig config) throws InterruptedException {
+        return execFineTuneStep(config, Double.NaN);
+    }
+
+    private double execFineTuneStep(FineTuneStepConfig config, double score) throws InterruptedException {
         logInfoAndStdOut("Starting fine tune step.");
 
-        double score = complianceScore(config);
-        if (score < 0) {
-            int tuneDownStep = 2 * (int) Math.min(Math.round(-score), config.getInitialStep());
-            do {
-                LOGGER.debug("Fine tuning down with step: {}", tuneDownStep);
-                setWorkerCount(Math.max(mWorkersPool.getWorkerCount() - tuneDownStep, 0));
-            } while (!isComplying(config));
+        if (Double.isNaN(score)) {
+            score = complianceScore(config);
+        }
+        int tuneDownStep = 2 * (int) Math.min(Math.round(-score), config.getMaxInitialStep());
+        while (score < 0) {
+            LOGGER.debug("Fine tuning down with step: {}", tuneDownStep);
+            setWorkerCount(Math.max(mWorkersPool.getWorkerCount() - tuneDownStep, 0));
+            score = complianceScore(config);
         }
 
         int complyingCount = mWorkersPool.getWorkerCount();
-        for (int step = config.getInitialStep(); step > 1; step /= 2) {
+        int initialStep = (int) Math.min(Math.round(2 * score), config.getMaxInitialStep());
+        for (int step = initialStep; step >= 1; step /= 2) {
             while (true) {
                 LOGGER.debug("Fine tuning up with step: {}", step);
                 setWorkerCount(complyingCount + step);
