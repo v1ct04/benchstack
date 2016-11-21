@@ -38,7 +38,32 @@ vergte () {
     return 0
 }
 
-USER=$(who am i | cut -d ' ' -f 1)
+is_nonroot_user() {
+    if [ -z $1 ]; then
+        return 1
+    fi
+
+    local id
+    id=$(id -u "$1" 2>/dev/null)
+    if [[ $? -ne 0 || -z $id ]]; then
+        return 1 # command failed
+    elif [ -z $id ]; then
+        return 1 # user not found
+    elif [ $id -eq 0 ]; then
+        return 1 # user is root
+    else
+        return 0
+    fi
+}
+
+U_USER=$(who am i | cut -d ' ' -f 1)
+: ${U_USER:=ubuntu}
+
+if ! is_nonroot_user "$U_USER"; then
+  echo "Unable to obtain unprivileged user for created files."
+  exit 1
+fi
+
 NODE_VERSION="$(node --version | cut -c 2-)"
 
 if [ $? = 0 ] && vergte "$NODE_VERSION" "6.0"; then
@@ -64,12 +89,12 @@ fi
 if [ -d "$DIRNAME" ]; then
   echo "[mongo_seed] Latest release already downloaded. Skipping."
 else
-  curl -SL "$LATEST_URL" | sudo -u "$USER" tar -xz
+  curl -SL "$LATEST_URL" | sudo -u "$U_USER" tar -xz
 fi
 cd "$DIRNAME"
 
-echo "[mongo_seed] Installing npm dependencies as user $USER"
-sudo -u "$USER" npm install
+echo "[mongo_seed] Installing npm dependencies as user $U_USER"
+sudo -u "$U_USER" npm install
 
 echo "[mongo_seed] Performing seed"
-sudo -u "$USER" ./bin/seed "$@"
+sudo -u "$U_USER" ./bin/seed "$@"
