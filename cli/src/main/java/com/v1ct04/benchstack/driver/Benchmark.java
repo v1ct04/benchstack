@@ -85,7 +85,7 @@ public class Benchmark {
             double score = execFineTuneStep(mConfig.getFineTuneConfig());
 
             while (score < 0) {
-                if (score < -2 * mConfig.getFineTuneConfig().getMaxInitialStep()) {
+                if (-score > mConfig.getFineTuneConfig().getMaxInitialStep()) {
                     logInfoAndStdOut("Unexpectedly bad result from fine tune, doing binary search again.");
                     searchLimits = searchLimits.intersection(Range.atMost(mWorkersPool.getWorkerCount()));
                     execBinarySearchStep(mConfig.getBinarySearchConfig(), searchLimits);
