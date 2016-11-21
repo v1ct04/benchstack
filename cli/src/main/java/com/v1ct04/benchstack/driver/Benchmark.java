@@ -303,7 +303,7 @@ public class Benchmark {
 
     private static void logInfoAndStdOut(String format, Object... args) {
         String msg = String.format(format, args);
-        System.out.format("[%s] %s", new Date(), msg);
+        System.out.format("[%s] %s\n", new Date(), msg);
         LOGGER.info(msg);
     }
 
