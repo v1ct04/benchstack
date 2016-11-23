@@ -52,6 +52,9 @@ EOL
   echo "[install_mongod] End of init script"
 fi
 
+# Tee and grep in order to check if the substitution was actually successful
+cat /etc/mongod.conf | sed -r 's/(\s*bindIp:).*/\1 0.0.0.0/' | tee /etc/mongod.conf | grep "bindIp: 0.0.0.0"
+
 echo "[install_mongod] Making sure mongod service is running"
 
 if [ "$RELEASE" = "16.04" ]; then
