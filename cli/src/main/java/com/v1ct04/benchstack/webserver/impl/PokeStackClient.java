@@ -18,16 +18,16 @@ import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class PokestackWebServerClient implements WebServerClient {
+public class PokeStackClient implements WebServerClient {
 
-    public static ListenableFuture<PokestackWebServerClient> asyncCreate(RestfulHttpClient client, int workerNum) {
+    public static ListenableFuture<PokeStackClient> asyncCreate(RestfulHttpClient client, int workerNum) {
         JSONObject args = new JSONObject().put("workerNum", workerNum);
         String path = "/api/user/findOrCreate";
         return Futures.transform(
                 data(path, client.doPost(path, args)),
                 (JSONObject data) -> {
                     assert data != null;
-                    return new PokestackWebServerClient(client, data.getString("id"));
+                    return new PokeStackClient(client, data.getString("id"));
                 });
     }
 
@@ -38,7 +38,7 @@ public class PokestackWebServerClient implements WebServerClient {
     private final JSONObject mUserIdBody;
     private final NearbyElements mNearby;
 
-    private PokestackWebServerClient(RestfulHttpClient client, String userId) {
+    private PokeStackClient(RestfulHttpClient client, String userId) {
         mClient = client;
 
         mUserId = userId;

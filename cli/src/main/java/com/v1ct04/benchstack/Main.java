@@ -6,7 +6,7 @@ import com.v1ct04.benchstack.driver.BenchmarkAction;
 import com.v1ct04.benchstack.webserver.RestfulHttpClient;
 import com.v1ct04.benchstack.webserver.WebServerBenchmarkAction;
 import com.v1ct04.benchstack.webserver.impl.NingHttpClient;
-import com.v1ct04.benchstack.webserver.impl.PokestackWebServerClient;
+import com.v1ct04.benchstack.webserver.impl.PokeStackClient;
 import org.slf4j.event.Level;
 
 import java.io.IOException;
@@ -21,7 +21,7 @@ public class Main {
 
         try (RestfulHttpClient client = new NingHttpClient(options.serverAddress)) {
             BenchmarkAction action = new WebServerBenchmarkAction(
-                    client, PokestackWebServerClient::asyncCreate);
+                    client, PokeStackClient::asyncCreate);
             Benchmark bench = new Benchmark(options.benchmarkConfig, action);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
